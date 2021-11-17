@@ -25,14 +25,13 @@ include(cmake/log.cmake)
 include(cmake/json.cmake)
 
 include_directories(include)
-include_directories(protocol/include)
+include_directories(protocol)
 include_directories(fss/include)
 add_library(fss fss/fss-client.cpp
                 fss/fss-common.cpp
                 fss/fss-server.cpp)
 target_link_libraries(fss gmp gmpxx ${OPENSSL_LIBRARIES})
 
-add_executable(oshift src/applications/ot_and_shift.cpp)
-add_executable(fss_test src/applications/fss_test.cpp)
-target_link_libraries(oshift PRIVATE ${OPENSSL_LIBRARIES} log nlohmann_json)
-target_link_libraries(fss_test PRIVATE gmp gmpxx fss log nlohmann_json)
+add_executable(test src/Test_ram.cpp)
+
+target_link_libraries(test PRIVATE gmp gmpxx fss log nlohmann_json)
