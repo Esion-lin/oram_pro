@@ -52,13 +52,13 @@ void recv_fss_key(Fss& key, P2Pchannel p2pchnl){
     key.prime = z;
     p2pchnl->recv_data_from("aid",key.aes_keys,sizeof(AES_KEY)*key.numKeys);
 }
-void send_eq_key(const ServerKeyLt& key, const Fss &fkey, std::string player, P2Pchannel p2pchnl){
+void send_eq_key(const ServerKeyEq& key, const Fss &fkey, std::string player, P2Pchannel p2pchnl){
     send_mpz(key.w,player);
     p2pchnl->send_data_to(player,&key,sizeof(ServerKeyEq)-16);
     p2pchnl->send_data_to(player,key.cw[0],(fkey.numBits - 1)*sizeof(CWEq));
     p2pchnl->send_data_to(player,key.cw[1],(fkey.numBits - 1)*sizeof(CWEq));
 }
-void recv_eq_key(ServerKeyLt& key, const Fss &fkey, std::string player, P2Pchannel p2pchnl){
+void recv_eq_key(ServerKeyEq& key, const Fss &fkey, std::string player, P2Pchannel p2pchnl){
     mpz_class tmp = recv_mpz();
     p2pchnl->recv_data_from(player,&key,sizeof(ServerKeyEq)-16);
     key.w = tmp;
@@ -67,6 +67,7 @@ void recv_eq_key(ServerKeyLt& key, const Fss &fkey, std::string player, P2Pchann
     p2pchnl->recv_data_from(player,key.cw[0],sizeof(CWEq)*(fkey.numBits - 1));
     p2pchnl->recv_data_from(player,key.cw[1],sizeof(CWEq)*(fkey.numBits - 1));
 }
+
 void send_lt_key(const ServerKeyLt& key, const Fss &fkey, std::string player, P2Pchannel p2pchnl){
     p2pchnl->send_data_to(player,&key,sizeof(ServerKeyLt));
     p2pchnl->send_data_to(player,key.cw[0],(fkey.numBits - 1)*sizeof(CWLt));
@@ -78,5 +79,9 @@ void recv_lt_key(ServerKeyLt& key, const Fss &fkey, std::string player, P2Pchann
     key.cw[1] = (CWLt*) malloc(sizeof(CWLt)*(fkey.numBits - 1));
     p2pchnl->recv_data_from(player,key.cw[0],sizeof(CWLt)*(fkey.numBits - 1));
     p2pchnl->recv_data_from(player,key.cw[1],sizeof(CWLt)*(fkey.numBits - 1));
+}
+template <typename T>
+void free_key(T& key){
+    free(key.cw[0]);free(key.cw[1]);
 }
 #endif
