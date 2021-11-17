@@ -1,0 +1,27 @@
+{
+    "config":{
+        "player0":{
+            "host":"127.0.0.1",
+            "port":1
+        },
+        "player1":{
+            "host":"127.0.0.1",
+            "port":2
+        },
+        "player2":{
+            "host":"127.0.0.1",
+            "port":3
+        },
+        "player3":{
+            "host":"127.0.0.1",
+            "port":4
+        },
+        "aid":{
+            "host":"127.0.0.1",
+            "port":5
+        }
+    },
+    
+    "myplayer":"player0"
+    
+}
