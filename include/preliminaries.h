@@ -228,6 +228,7 @@ public:
         T deltaV_plus = target - org - get<4>(write_triples[write_times]);
         T deltaV;
         diag_reveal<T>(&deltaV_plus, &deltaV, 1);
+        std::cout<<"deltaV "<<deltaV<<std::endl;
         uint32_t delta[2] = {sub(idex, get<2>(write_triples[write_times]), data_len), sub(idex, get<3>(write_triples[write_times]), data_len)};
         uint32_t delta_r[2];
         diag_reveal<uint32_t>(delta, delta_r, 2);
@@ -239,12 +240,10 @@ public:
             uint32_t tmp = mpz_get_ui(ans.get_mpz_t());
             if(st == "player0" || st == "player1") data_ptr[i] += tmp;
             else data_ptr[i] -= tmp;
-            std::cout<<"v: "<<tmp<<std::endl;
             ans = evaluateEq(&faccess, &get<1>(write_triples[write_times]), sub(i, delta_r[1], data_len));
             tmp = mpz_get_ui(ans.get_mpz_t());
             if(st == "player0" || st == "player1") data_ptr[i] += deltaV*tmp;
             else data_ptr[i] -= deltaV*tmp;
-            std::cout<<"d: "<<tmp<<std::endl;
         }
         free_key<ServerKeyEq>(get<1>(write_triples[write_times]));
         free_key<ServerKeyEq>(get<0>(write_triples[write_times]));

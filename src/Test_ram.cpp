@@ -13,7 +13,7 @@ int main(int argc, char** argv){
     uint32_t tmp = test_ram->read(2);
     std::cout<<"tmp is "<< tmp <<std::endl;
     p2pchnl->flush_all();
-    test_ram->write(2, 6, tmp);
+    test_ram->write(2, 6, 5);
     std::cout<<"write"<<test_ram->data_ptr[4]<<std::endl;
     std::cout<<"write"<<test_ram->data_ptr[0]<<std::endl;
     delete cfg;
