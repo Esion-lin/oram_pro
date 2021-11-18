@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.12)
 project(ram_mpc_dt)
 SET(CMAKE_BUILD_TYPE "Debug")  
 set(CMAKE_CXX_STANDARD 11)
-SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -Wall -g2 -ggdb -g -O2")
-#SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -Wall -g2 -ggdb -fsanitize=address -fno-omit-frame-pointer -g -O2")   
+#SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -Wall -g2 -ggdb -g -O2")
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -Wall -g2 -ggdb -fsanitize=address -fno-omit-frame-pointer -g -O2")   
 SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")  
 SET(CMAKE_EXE_LINKER_FLAGS 
           "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/usr/local/lib")
@@ -25,11 +25,12 @@ include(cmake/log.cmake)
 include(cmake/json.cmake)
 
 include_directories(include)
-include_directories(protocol)
+
 include_directories(fss/include)
 add_library(fss fss/fss-client.cpp
                 fss/fss-common.cpp
                 fss/fss-server.cpp)
+include_directories(protocol)
 target_link_libraries(fss gmp gmpxx ${OPENSSL_LIBRARIES})
 
 add_executable(test src/Test_ram.cpp)
