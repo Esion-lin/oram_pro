@@ -1,3 +1,4 @@
+
 #ifndef _PRELIMINARIES_H__
 #define _PRELIMINARIES_H__
 #include <string.h>
@@ -26,8 +27,31 @@ uint32_t sub(uint32_t a, uint32_t b, uint32_t c){
     return a + c -b;
 }
 template <typename T>
+void replicated_share(T* data, uint16_t lens){
+    
+}
+
+template <typename T>
 class Ram{
-    /*T type of element, L type of lens*/
+    /*T type of element*/
+    /*
+    #### usage
+    1. accept data and init
+    '''
+    Ram<uint32_t>* test_ram = new Ram<type_of_element>(type_of_element *data, len)
+    test_ram->init();
+    '''
+    2. prepare read triples and write tuples
+    '''
+    test_ram->prepare_read(ntimes); # ntimes:  triples sizes
+    test_ram->prepare_write(ntimes);
+    '''
+    3.read and write
+    '''
+    test_ram->read(index);
+    test_ram->write(index, target, org);
+    '''
+    */
 private:
     Fss faccess;
     bool init_flag = false;
