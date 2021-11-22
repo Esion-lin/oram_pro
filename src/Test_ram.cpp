@@ -1,6 +1,6 @@
-#include "preliminaries.h"
+#include "preliminaries.hpp"
 #include "easylogging++.h"
-
+#include "risc.h"
 INITIALIZE_EASYLOGGINGPP
 int main(int argc, char** argv){
     Config* cfg = new Config("./config.json");
@@ -10,11 +10,11 @@ int main(int argc, char** argv){
     test_ram->init();
     test_ram->prepare_read(1);
     test_ram->prepare_write(1);
-    uint32_t tmp = test_ram->read(2);
+    uint32_t tmp = test_ram->read(2, false);
     std::cout<<"tmp is "<< tmp <<std::endl;
     p2pchnl->flush_all();
-    test_ram->write(2, 6, 5);
-    std::cout<<"write"<<test_ram->data_ptr[4]<<std::endl;
+    test_ram->write(2, 6, 9, false);
+    std::cout<<"write"<<test_ram->data_ptr[8]<<std::endl;
     std::cout<<"write"<<test_ram->data_ptr[0]<<std::endl;
     delete cfg;
     delete p2pchnl;

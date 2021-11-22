@@ -7,20 +7,20 @@
 #include "fss-server.h"
 
 #include "fss-common.h"
-#include "fss_help.h"
+#include "fss_help.hpp"
 #include <vector>
 
 using namespace std;
 using fss_triple = pair<ServerKeyEq, uint32_t>;
 using write_tuple = tuple<ServerKeyEq, ServerKeyEq, uint32_t, uint32_t, uint32_t>;
-uint32_t logn(uint32_t x){
+inline uint32_t logn(uint32_t x){
     for(uint32_t i = 0; i < 32; i++){
         if(pow(2, i) >= x)
             return i;
     }
     return 32;
 }
-uint32_t sub(uint32_t a, uint32_t b, uint32_t c){
+inline uint32_t sub(uint32_t a, uint32_t b, uint32_t c){
     if(a >= b){
         return a - b;
     }
@@ -95,6 +95,87 @@ void twopc_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl){
         p2pchnl->recv_data_from("aid", data, sizeof(T)*lens);
     }
 }
+template <typename R>
+void twopc_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
+    if(st == "player0"){
+        p2pchnl->send_data_to("player1", data, len*sizeof(R));
+        p2pchnl->recv_data_from("player1", data2, len*sizeof(R));
+        
+    }else if(st == "player1"){
+        p2pchnl->send_data_to("player0", data, len*sizeof(R));
+        p2pchnl->recv_data_from("player0", data2, len*sizeof(R));
+
+    }else if(st == "player2"){
+        p2pchnl->send_data_to("player3", data, len*sizeof(R));
+        p2pchnl->recv_data_from("player3", data2, len*sizeof(R));
+    }else if(st == "player3"){
+        p2pchnl->send_data_to("player2", data, len*sizeof(R));
+        p2pchnl->recv_data_from("player2", data2, len*sizeof(R));
+
+    }
+    for(int i = 0 ; i < len; i ++){
+        data2[i] = data[i] + data2[i];
+    }
+}
+template <typename R>
+void diag_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
+    if(st == "player0"){
+        p2pchnl->send_data_to("player2", data, len*sizeof(R));
+        p2pchnl->recv_data_from("player2", data2, len*sizeof(R));
+        
+    }else if(st == "player2"){
+        p2pchnl->send_data_to("player0", data, len*sizeof(R));
+        p2pchnl->recv_data_from("player0", data2, len*sizeof(R));    
+    }else if(st == "player1"){
+        p2pchnl->send_data_to("player3", data, len*sizeof(R));
+        p2pchnl->recv_data_from("player3", data2, len*sizeof(R));
+    }else if(st == "player3"){
+        p2pchnl->send_data_to("player1", data, len*sizeof(R));
+        p2pchnl->recv_data_from("player1", data2, len*sizeof(R));  
+    }
+    for(int i = 0 ; i < len; i ++){
+        data2[i] = data[i] + data2[i];
+    }
+}
+template <typename R>
+void fourpc_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
+    if(st == "aid") return;
+    if(st != "player0")
+        p2pchnl->send_data_to("player0", data, len*sizeof(R));
+    if(st != "player1")
+        p2pchnl->send_data_to("player1", data, len*sizeof(R));
+    if(st != "player2")
+        p2pchnl->send_data_to("player2", data, len*sizeof(R));
+    if(st != "player3")
+        p2pchnl->send_data_to("player3", data, len*sizeof(R));
+    R* tmp = (R*) malloc(len*sizeof(R));
+    memcpy(data2, data, len*sizeof(R));
+    if(st != "player0"){
+        p2pchnl->recv_data_from("player0", tmp, len*sizeof(R));
+        for(int i = 0 ; i < len; i ++){
+            data2[i] = data2[i] + tmp[i];
+        }
+    }  
+    if(st != "player1"){
+        p2pchnl->recv_data_from("player1", tmp, len*sizeof(R));
+        for(int i = 0 ; i < len; i ++){
+            data2[i] = data2[i] + tmp[i];
+        }
+    } 
+    if(st != "player2"){
+        p2pchnl->recv_data_from("player2", tmp, len*sizeof(R));
+        for(int i = 0 ; i < len; i ++){
+            data2[i] = data2[i] + tmp[i];
+        }
+    }  
+    if(st != "player3"){
+        p2pchnl->recv_data_from("player3", tmp, len*sizeof(R));
+        for(int i = 0 ; i < len; i ++){
+            data2[i] = data2[i] + tmp[i];
+        }
+    }
+    free(tmp);
+}
 template <typename T>
 class Ram{
     /*T type of element*/
@@ -125,46 +206,7 @@ private:
     void share(std::string from_p){
 
     }
-    template <typename R>
-    void twopc_reveal(R* data, R* data2, int len){
-        if(st == "player0"){
-            p2pchnl->send_data_to("player1", data, len*sizeof(T));
-            p2pchnl->recv_data_from("player1", data2, len*sizeof(T));
-            
-        }else if(st == "player1"){
-            p2pchnl->recv_data_from("player0", data2, len*sizeof(T));
-            p2pchnl->send_data_to("player0", data, len*sizeof(T));
-        }else if(st == "player2"){
-            p2pchnl->send_data_to("player3", data, len*sizeof(T));
-            p2pchnl->recv_data_from("player3", data2, len*sizeof(T));
-        }else if(st == "player3"){
-            p2pchnl->recv_data_from("player2", data2, len*sizeof(T));
-            p2pchnl->send_data_to("player2", data, len*sizeof(T));
-        }
-        for(int i = 0 ; i < len; i ++){
-            data2[i] = data[i] + data2[i];
-        }
-    }
-    template <typename R>
-    void diag_reveal(R* data, R* data2, int len){
-        if(st == "player0"){
-            p2pchnl->send_data_to("player2", data, len*sizeof(T));
-            p2pchnl->recv_data_from("player2", data2, len*sizeof(T));
-            
-        }else if(st == "player2"){
-            p2pchnl->recv_data_from("player0", data2, len*sizeof(T));
-            p2pchnl->send_data_to("player0", data, len*sizeof(T));
-        }else if(st == "player1"){
-            p2pchnl->send_data_to("player3", data, len*sizeof(T));
-            p2pchnl->recv_data_from("player3", data2, len*sizeof(T));
-        }else if(st == "player3"){
-            p2pchnl->recv_data_from("player1", data2, len*sizeof(T));
-            p2pchnl->send_data_to("player1", data, len*sizeof(T));
-        }
-        for(int i = 0 ; i < len; i ++){
-            data2[i] = data[i] + data2[i];
-        }
-    }
+    
 public:
     uint32_t data_len;
     T* data_ptr;
@@ -279,7 +321,8 @@ public:
             }
         }
     }
-    T read(uint32_t idex){
+    T read(uint32_t idex, bool is_rep = true){
+        /*idex i -> i0 + i1 = i2 + i3*/
         if(st == "aid"){
             T a;
             return a;
@@ -288,9 +331,24 @@ public:
             /*异常处理*/
             //return;
         }
-        uint32_t delta = sub(idex, read_triples[read_times].second, data_len);
         uint32_t delta_r;
-        twopc_reveal<uint32_t>(&delta, &delta_r, 1);
+        if(is_rep){
+            uint32_t delta = sub(idex, read_triples[read_times].second, data_len);
+            twopc_reveal<uint32_t>(&delta, &delta_r, 1, st, p2pchnl);
+        }else{
+            /*TODO: 添加0-shared*/
+            uint32_t delta1[2],delta2[2];
+            if(st == "player0"||st == "player1")
+                delta1[0] = sub(idex, read_triples[read_times].second, data_len);
+            else delta1[0] = idex;
+            if(st == "player2"||st == "player3")
+                delta1[1] = sub(idex, read_triples[read_times].second, data_len);
+            else delta1[1] = idex;
+            fourpc_reveal<uint32_t>(delta1, delta2, 2, st, p2pchnl);
+            if(st == "player0"||st == "player1") delta_r = delta2[0];
+            else delta_r = delta2[1];
+        }
+        
         while(delta_r > 2*data_len) delta_r+=data_len;
         delta_r = delta_r % data_len;
         T res;
@@ -305,7 +363,7 @@ public:
         read_times ++;
         return res;
     }
-    void write(uint32_t idex, T target, T org){
+    void write(uint32_t idex, T target, T org, bool is_rep = true){
         if(st == "aid")
             return;
         if(write_times >= write_triples.size()){
@@ -315,11 +373,33 @@ public:
         /*calculate and open deltaV*/
         T deltaV_plus = target - org - get<4>(write_triples[write_times]);
         T deltaV;
-        diag_reveal<T>(&deltaV_plus, &deltaV, 1);
+        diag_reveal<T>(&deltaV_plus, &deltaV, 1, st, p2pchnl);
         std::cout<<"deltaV "<<deltaV<<std::endl;
-        uint32_t delta[2] = {sub(idex, get<2>(write_triples[write_times]), data_len), sub(idex, get<3>(write_triples[write_times]), data_len)};
         uint32_t delta_r[2];
-        diag_reveal<uint32_t>(delta, delta_r, 2);
+        if(is_rep){
+            uint32_t delta[2] = {sub(idex, get<2>(write_triples[write_times]), data_len), sub(idex, get<3>(write_triples[write_times]), data_len)};
+            diag_reveal<uint32_t>(delta, delta_r, 2, st, p2pchnl);
+        }else{
+            uint32_t delta[4],delta2[4];
+            if(st == "player0"||st == "player2"){
+                delta[0] = sub(idex, get<2>(write_triples[write_times]), data_len);
+                delta[1] = sub(idex, get<3>(write_triples[write_times]), data_len);
+                delta[2] = idex;
+                delta[3] = idex;
+            }
+            else{
+                delta[0] = idex;
+                delta[1] = idex;
+                delta[2] = sub(idex, get<2>(write_triples[write_times]), data_len);
+                delta[3] = sub(idex, get<3>(write_triples[write_times]), data_len);
+            }
+            fourpc_reveal<uint32_t>(delta, delta2, 4, st, p2pchnl);
+            if(st == "player0"||st == "player2"){
+                delta_r[0] = delta2[0];delta_r[1] = delta2[1];
+            }else{
+                delta_r[0] = delta2[2];delta_r[1] = delta2[3];
+            }
+        }
         while(delta_r[0] > 2*data_len) delta_r[0]+=data_len;
         while(delta_r[1] > 2*data_len) delta_r[1]+=data_len;
         delta_r[0] = delta_r[0] % data_len;delta_r[1] = delta_r[1] % data_len;

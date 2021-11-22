@@ -8,7 +8,7 @@ struct Player{
     std::string address;
     int port;
 };
-json load_json(std::string path){
+inline json load_json(std::string path){
     json res;
     std::ifstream in(path);
     in>>res;

@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <map>
-#include "config.h"
+#include "config.hpp"
 
 
 #include <iostream>

@@ -1,4 +1,7 @@
+#ifndef _RISC_H__
+#define _RISC_H__
 #include <stdint.h>
+#include "preliminaries.hpp"
 
 #define M_LEN 32
 #define MEM_LEN 1024
@@ -46,8 +49,12 @@ struct Ins
     /* data */
     uint8_t optr, idic, i, j, pad;
     uint32_t imme;
+    friend ostream & operator<<(ostream & out, Ins & A);
 };
-
+inline ostream & operator<<(ostream & out, Ins & A){
+    out << (uint32_t)A.optr <<" "<< (uint32_t)A.idic <<" "<<(uint32_t)A.i <<" "<<(uint32_t)A.j <<" "<<(uint32_t)A.pad <<" "<<A.imme;
+    return out;
+}
 struct Env{
     WORD pc,flag;
     WORD m[M_LEN];
@@ -56,7 +63,20 @@ struct Env{
     WORD tape2[TAPE_LEN];
     WORD rc,num;  
 };
+template <typename T>
+T load_T(WORD *arr, uint16_t index){
+    T* nptr = reinterpret_cast<T*> (arr);
+    return nptr[index];
+}
+template <typename T>
+void set_T(WORD *arr, uint16_t index, T tar){
+    T* nptr = reinterpret_cast<T*> (arr);
+    nptr[index] = tar;
+}
 
+
+Ins m2i(uint64_t data);
+uint64_t i2m(Ins data);
 class Mechine{
 private:
     P2Pchannel *p2pchnl;
@@ -72,3 +92,6 @@ public:
     void load_env(std::string path);//from file
 
 };
+
+
+#endif
