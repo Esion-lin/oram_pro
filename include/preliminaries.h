@@ -27,10 +27,74 @@ uint32_t sub(uint32_t a, uint32_t b, uint32_t c){
     return a + c -b;
 }
 template <typename T>
-void replicated_share(T* data, uint16_t lens){
-    
+void rand_t(T* data, uint16_t data_len){
+    /*
+    TODO: use prf
+    */
+    int lens = sizeof(T);
+    uint8_t tmp[lens*data_len];
+    for(int i = 0; i < lens * data_len; i++){
+        tmp[i] = rand();
+    }
+    memcpy(data, tmp, lens*data_len);
 }
+template <typename T>
+void replicated_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl){
+    /*registers, memory and tapes*/
+    if(st == "aid"){
+        T *data0 = (T*) malloc(sizeof(T)*lens);
+        T *data1 = (T*) malloc(sizeof(T)*lens);
+        rand_t<T>(data0, lens);
+        for(int i = 0; i < lens; i++){
+            data1[i] = data[i] - data0[i];
+        }
+        p2pchnl->send_data_to("player0", data0, sizeof(T)*lens);
+        p2pchnl->send_data_to("player1", data0, sizeof(T)*lens);
+        p2pchnl->send_data_to("player2", data1, sizeof(T)*lens);
+        p2pchnl->send_data_to("player3", data1, sizeof(T)*lens);
+        free(data0);free(data1);
+    }else{
+        p2pchnl->recv_data_from("aid", data, sizeof(T)*lens);
+    }
 
+}
+template <typename T>
+void fourpc_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl){
+    if(st == "aid"){
+        T *data0 = (T*) malloc(sizeof(T)*lens);
+        T *data1 = (T*) malloc(sizeof(T)*lens);
+        T *data2 = (T*) malloc(sizeof(T)*lens);
+        rand_t<T>(data0, lens);
+        rand_t<T>(data1, lens);
+        rand_t<T>(data2, lens);
+        for(int i = 0; i < lens; i++){
+            data[i] = data[i] - data0[i] - data1[i] - data2[i];
+        }
+        p2pchnl->send_data_to("player0", data, sizeof(T)*lens);
+        p2pchnl->send_data_to("player1", data0, sizeof(T)*lens);
+        p2pchnl->send_data_to("player2", data1, sizeof(T)*lens);
+        p2pchnl->send_data_to("player3", data2, sizeof(T)*lens);
+        free(data0);free(data1);free(data2);
+    }else{
+        p2pchnl->recv_data_from("aid", data, sizeof(T)*lens);
+    }
+}
+template <typename T>
+void twopc_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl){
+    if(st == "aid"){
+        T *data0 = (T*) malloc(sizeof(T)*lens);
+        T *data1 = (T*) malloc(sizeof(T)*lens);
+        rand_t<T>(data0, lens);
+        for(int i = 0; i < lens; i++){
+            data1[i] = data[i] - data0[i];
+        }
+        p2pchnl->send_data_to("player0", data0, sizeof(T)*lens);
+        p2pchnl->send_data_to("player1", data1, sizeof(T)*lens);
+        free(data0);free(data1);
+    }else if(st == "player0" || st == "player1"){
+        p2pchnl->recv_data_from("aid", data, sizeof(T)*lens);
+    }
+}
 template <typename T>
 class Ram{
     /*T type of element*/

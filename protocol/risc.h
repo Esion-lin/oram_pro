@@ -48,11 +48,27 @@ struct Ins
     uint32_t imme;
 };
 
-struct Mechine{
+struct Env{
     WORD pc,flag;
     WORD m[M_LEN];
     WORD mem[MEM_LEN];
-    WORD TAPE1[TAPE_LEN];
-    WORD TAPE2[TAPE_LEN];
+    WORD tape1[TAPE_LEN];
+    WORD tape2[TAPE_LEN];
     WORD rc,num;  
+};
+
+class Mechine{
+private:
+    P2Pchannel *p2pchnl;
+    std::string st;
+    Env myenv;
+    bool ismyenv_init = false;
+public:
+    Mechine(std::string st, P2Pchannel *p2pchnl):st(st),p2pchnl(p2pchnl){}
+    Mechine(std::string st, P2Pchannel *p2pchnl, Env myenv):st(st),p2pchnl(p2pchnl),myenv(myenv){
+        ismyenv_init = true;
+    }
+    void load_env();                //from aid
+    void load_env(std::string path);//from file
+
 };
