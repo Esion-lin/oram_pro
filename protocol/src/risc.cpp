@@ -30,13 +30,29 @@ uint64_t i2m(Ins data){
     ans+= data.imme;
     return ans;
 }
+Ins rand_ins(){
+    Ins ans;
+    ans.optr = rand()%(1<<OPT_LEN);
+    ans.idic = rand()%(1<<INDIC_LEN);
+    ans.i = rand()%(1<<REGIS_LEN);
+    ans.j = rand()%(1<<REGIS_LEN);
+    ans.pad = rand()%(1<<PAD_LEN);
+    ans.imme = rand();
+    return ans;
+}
 //from aid
 void Mechine::load_env(){
     replicated_share<WORD>(myenv.m, M_LEN, st, p2pchnl);
+    /*TODO: add a callback func*/
     replicated_share<WORD>(myenv.mem, MEM_LEN, st, p2pchnl);
     replicated_share<WORD>(myenv.tape1, TAPE_LEN, st, p2pchnl);
     replicated_share<WORD>(myenv.tape2, TAPE_LEN, st, p2pchnl);
     fourpc_share<WORD>(&(myenv.pc), 2, st, p2pchnl);
     twopc_share<WORD>(&(myenv.rc), 2, st, p2pchnl);
+    ins_ram = new Ram<uint64_t>(reinterpret_cast<uint64_t*>(myenv.mem), MEM_LEN, st, p2pchnl);
 }            
 void Mechine::load_env(std::string path){}//from file
+
+Ins Mechine::load_ins(){
+
+}

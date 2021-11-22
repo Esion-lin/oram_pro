@@ -74,7 +74,7 @@ void set_T(WORD *arr, uint16_t index, T tar){
     nptr[index] = tar;
 }
 
-
+Ins rand_ins();
 Ins m2i(uint64_t data);
 uint64_t i2m(Ins data);
 class Mechine{
@@ -82,6 +82,7 @@ private:
     P2Pchannel *p2pchnl;
     std::string st;
     Env myenv;
+    Ram<uint64_t>* ins_ram;
     bool ismyenv_init = false;
 public:
     Mechine(std::string st, P2Pchannel *p2pchnl):st(st),p2pchnl(p2pchnl){}
@@ -90,6 +91,7 @@ public:
     }
     void load_env();                //from aid
     void load_env(std::string path);//from file
+    Ins load_ins();
 
 };
 
