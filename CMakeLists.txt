@@ -31,10 +31,11 @@ add_library(fss fss/fss-client.cpp
                 fss/fss-common.cpp
                 fss/fss-server.cpp)
 include_directories(protocol)
-add_library(risc protocol/src/risc.cpp)
+add_library(risc protocol/src/risc.cpp
+                protocol/src/convert.cpp)
 target_link_libraries(fss gmp gmpxx ${OPENSSL_LIBRARIES})
-
+target_link_libraries(risc fss)
 add_executable(test src/Test_ram.cpp)
 add_executable(test_risc src/Test_risc.cpp)
-target_link_libraries(test PRIVATE gmp gmpxx fss risc log nlohmann_json)
-target_link_libraries(test_risc PRIVATE gmp gmpxx risc log nlohmann_json)
+target_link_libraries(test PRIVATE risc log nlohmann_json)
+target_link_libraries(test_risc PRIVATE risc log nlohmann_json)

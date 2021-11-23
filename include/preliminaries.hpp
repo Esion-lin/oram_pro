@@ -38,15 +38,17 @@ void rand_t(T* data, uint16_t data_len){
     }
     memcpy(data, tmp, lens*data_len);
 }
+
 template <typename T>
-void replicated_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl){
+void replicated_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl, T (*share_cb)(T a, T b) = [](T a, T b) -> T{return a - b;}){
     /*registers, memory and tapes*/
     if(st == "aid"){
+        
         T *data0 = (T*) malloc(sizeof(T)*lens);
         T *data1 = (T*) malloc(sizeof(T)*lens);
         rand_t<T>(data0, lens);
         for(int i = 0; i < lens; i++){
-            data1[i] = data[i] - data0[i];
+            data1[i] = share_cb(data[i], data0[i]);
         }
         p2pchnl->send_data_to("player0", data0, sizeof(T)*lens);
         p2pchnl->send_data_to("player1", data0, sizeof(T)*lens);
@@ -270,7 +272,7 @@ public:
             }
         }
     }
-    void prepare_write(uint16_t ntimes){
+    void prepare_write(uint16_t ntimes, bool is_additive = true){
         if(!init_flag){
             /*异常处理*/
             return;
@@ -321,7 +323,8 @@ public:
             }
         }
     }
-    T read(uint32_t idex, bool is_rep = true){
+    T read(uint32_t idex, bool is_rep = true, T (*read_cb)(T a, uint32_t b) = [](T a, uint32_t b) -> T {return a * b;}){
+        /*对于ins 直接读block 会出错， 需要分字段读取, 使用回调函数进行分字段处理*/
         /*idex i -> i0 + i1 = i2 + i3*/
         if(st == "aid"){
             T a;
@@ -356,8 +359,8 @@ public:
         for(uint32_t i = 0; i < data_len; i++){
             mpz_class ans = evaluateEq(&faccess, &read_triples[read_times].first, sub(i, delta_r, data_len));
             uint32_t tmp = mpz_get_ui(ans.get_mpz_t());
-            if(i == 0) res = data_ptr[i] * tmp;
-            else res += data_ptr[i] * tmp;
+            if(i == 0) res = read_cb(data_ptr[i], tmp);
+            else res += read_cb(data_ptr[i], tmp);
         }
         free_key<ServerKeyEq>(read_triples[read_times].first);
         read_times ++;

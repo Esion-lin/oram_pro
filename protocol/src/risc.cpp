@@ -1,5 +1,6 @@
 #include "risc.h"
 #include "preliminaries.hpp"
+#include <iostream>
 Ins m2i(uint64_t data){
     Ins ans;
     ans.imme = (uint32_t)data;
@@ -40,19 +41,37 @@ Ins rand_ins(){
     ans.imme = rand();
     return ans;
 }
+uint64_t sub_ins(uint64_t a, uint64_t b){
+    uint64_t res = i2m(m2i(a) - m2i(b));
+    return res;
+}
+uint64_t mul_ins(uint64_t a, uint64_t b){
+    uint64_t res = i2m(m2i(a) * m2i(b));
+    return res;
+}
+uint64_t mul_ins(uint64_t a, uint32_t b){
+    uint64_t tmp = b;
+    tmp <<= 32;
+    tmp += b;
+    return mul_ins(a, tmp);
+}
 //from aid
 void Mechine::load_env(){
     replicated_share<WORD>(myenv.m, M_LEN, st, p2pchnl);
     /*TODO: add a callback func*/
-    replicated_share<WORD>(myenv.mem, MEM_LEN, st, p2pchnl);
+    replicated_share<INS_TYPE>(reinterpret_cast<INS_TYPE*>(myenv.mem), MEM_LEN/2, st, p2pchnl, sub_ins);
+    
     replicated_share<WORD>(myenv.tape1, TAPE_LEN, st, p2pchnl);
     replicated_share<WORD>(myenv.tape2, TAPE_LEN, st, p2pchnl);
+    
     fourpc_share<WORD>(&(myenv.pc), 2, st, p2pchnl);
     twopc_share<WORD>(&(myenv.rc), 2, st, p2pchnl);
-    ins_ram = new Ram<uint64_t>(reinterpret_cast<uint64_t*>(myenv.mem), MEM_LEN, st, p2pchnl);
+    ins_ram = new Ram<uint64_t>(reinterpret_cast<uint64_t*>(myenv.mem), MEM_LEN/2, st, p2pchnl);
+    ins_ram->init();
 }            
 void Mechine::load_env(std::string path){}//from file
 
 Ins Mechine::load_ins(){
-
+    ins_ram->prepare_read(1);
+    return m2i(ins_ram->read(myenv.pc, false, mul_ins));
 }

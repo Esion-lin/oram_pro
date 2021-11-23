@@ -13,7 +13,7 @@
 #define PAD_LEN 11
 #define IMM_LEN 32
 #define WORD uint32_t
-
+#define INS_TYPE uint64_t
 //define ins
 
 #define AND     0x01
@@ -43,18 +43,54 @@
 #define LOAD    0x14
 #define READ    0x15
 #define ANSWER  0x16
-
+template <typename T>
+T sub_mod(T a, T b, T mod){
+    if(a < b){
+        return a + mod - b;
+    }
+    return (a - b) % mod;
+}
 struct Ins
 {
     /* data */
-    uint8_t optr, idic, i, j, pad;
+    uint8_t optr, idic, i, j;
+    uint16_t pad;
     uint32_t imme;
-    friend ostream & operator<<(ostream & out, Ins & A);
+    friend ostream & operator<<(ostream & out, Ins A){
+        out << (uint32_t)A.optr <<" "<< (uint32_t)A.idic <<" "<<(uint32_t)A.i <<" "<<(uint32_t)A.j <<" "<<(uint32_t)A.pad <<" "<<A.imme;
+        return out;
+    }
+    Ins operator - (const Ins other) const{
+        return {
+            sub_mod<uint8_t>(optr,other.optr, 1<<OPT_LEN),
+            sub_mod<uint8_t>(idic,other.idic, 1<<INDIC_LEN),
+            sub_mod<uint8_t>(i,other.i, 1<<REGIS_LEN),
+            sub_mod<uint8_t>(j,other.j, 1<<REGIS_LEN),
+            sub_mod<uint16_t>(pad,other.pad, 1<<PAD_LEN),
+            imme - other.imme
+        };
+    }
+    Ins operator + (const Ins other) const{
+        return {
+            (optr + other.optr) % (1<<OPT_LEN),
+            (idic + other.idic) % (1<<INDIC_LEN),
+            (i + other.i) % (1<<REGIS_LEN),
+            (j + other.j) % (1<<REGIS_LEN),
+            (pad + other.pad) % (1<<PAD_LEN),
+            imme + other.imme
+        };
+    }
+    Ins operator * (const Ins other) const{
+        return {
+            (optr * other.optr) % (1<<OPT_LEN),
+            (idic * other.idic) % (1<<INDIC_LEN),
+            (i * other.i) % (1<<REGIS_LEN),
+            (j * other.j) % (1<<REGIS_LEN),
+            (pad * other.pad) % (1<<PAD_LEN),
+            imme * other.imme
+        };
+    }
 };
-inline ostream & operator<<(ostream & out, Ins & A){
-    out << (uint32_t)A.optr <<" "<< (uint32_t)A.idic <<" "<<(uint32_t)A.i <<" "<<(uint32_t)A.j <<" "<<(uint32_t)A.pad <<" "<<A.imme;
-    return out;
-}
 struct Env{
     WORD pc,flag;
     WORD m[M_LEN];
@@ -77,6 +113,9 @@ void set_T(WORD *arr, uint16_t index, T tar){
 Ins rand_ins();
 Ins m2i(uint64_t data);
 uint64_t i2m(Ins data);
+uint64_t sub_ins(uint64_t a, uint64_t b);
+uint64_t mul_ins(uint64_t a, uint64_t b);
+uint64_t mul_ins(uint64_t a, uint32_t b);
 class Mechine{
 private:
     P2Pchannel *p2pchnl;
@@ -85,6 +124,7 @@ private:
     Ram<uint64_t>* ins_ram;
     bool ismyenv_init = false;
 public:
+
     Mechine(std::string st, P2Pchannel *p2pchnl):st(st),p2pchnl(p2pchnl){}
     Mechine(std::string st, P2Pchannel *p2pchnl, Env myenv):st(st),p2pchnl(p2pchnl),myenv(myenv){
         ismyenv_init = true;
@@ -92,7 +132,9 @@ public:
     void load_env();                //from aid
     void load_env(std::string path);//from file
     Ins load_ins();
-
+    ~Mechine(){
+        delete ins_ram;
+    }
 };
 
 
