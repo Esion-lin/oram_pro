@@ -40,13 +40,16 @@ void rand_t(T* data, uint16_t data_len){
 }
 
 template <typename T>
-void replicated_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl, T (*share_cb)(T a, T b) = [](T a, T b) -> T{return a - b;}){
+void replicated_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl, 
+                        T (*share_cb)(T a, T b) = [](T a, T b) -> T{return a - b;}, 
+                        void (*rand_data)(T *a, uint16_t data_len) = rand_t<T>
+                        ){
     /*registers, memory and tapes*/
     if(st == "aid"){
         
         T *data0 = (T*) malloc(sizeof(T)*lens);
         T *data1 = (T*) malloc(sizeof(T)*lens);
-        rand_t<T>(data0, lens);
+        rand_data(data0, lens);
         for(int i = 0; i < lens; i++){
             data1[i] = share_cb(data[i], data0[i]);
         }
@@ -57,20 +60,23 @@ void replicated_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchn
         free(data0);free(data1);
     }else{
         p2pchnl->recv_data_from("aid", data, sizeof(T)*lens);
+        
     }
 
 }
 template <typename T>
-void fourpc_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl){
+void fourpc_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl, 
+                            T (*share_cb)(T a, T b) = [](T a, T b) -> T{return a - b;},
+                            void (*rand_data)(T *a, uint16_t data_len) = rand_t<T>){
     if(st == "aid"){
         T *data0 = (T*) malloc(sizeof(T)*lens);
         T *data1 = (T*) malloc(sizeof(T)*lens);
         T *data2 = (T*) malloc(sizeof(T)*lens);
-        rand_t<T>(data0, lens);
-        rand_t<T>(data1, lens);
-        rand_t<T>(data2, lens);
+        rand_data(data0, lens);
+        rand_data(data1, lens);
+        rand_data(data2, lens);
         for(int i = 0; i < lens; i++){
-            data[i] = data[i] - data0[i] - data1[i] - data2[i];
+            data[i] = share_cb(share_cb(share_cb(data[i], data0[i]), data1[i]), data2[i]);
         }
         p2pchnl->send_data_to("player0", data, sizeof(T)*lens);
         p2pchnl->send_data_to("player1", data0, sizeof(T)*lens);
@@ -179,6 +185,18 @@ void fourpc_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pch
     free(tmp);
 }
 template <typename T>
+struct dupliM
+{
+    uint16_t lens;
+    T A;
+    T *m;
+    T operator[](int i){
+        if(i<lens) return A;
+        if(i >= 2*lens) return 0;
+        return m[i-lens];
+    }
+};
+template <typename T>
 class Ram{
     /*T type of element*/
     /*
@@ -204,6 +222,7 @@ private:
     bool init_flag = false;
     std::vector<fss_triple> read_triples;
     std::vector<write_tuple> write_triples;
+    bool is_contain = false;
     int read_times, write_times;
     void share(std::string from_p){
 
@@ -212,10 +231,15 @@ private:
 public:
     uint32_t data_len;
     T* data_ptr;
+    dupliM<T> data;
     std::string st;
     P2Pchannel* p2pchnl;
     /*load for data*/
     Ram(T* data_in, uint32_t lens, std::string st, P2Pchannel* p2pchnl):data_ptr(data_in), data_len(lens), st(st), p2pchnl(p2pchnl){}
+    Ram(dupliM<T> data_in, uint32_t lens, std::string st, P2Pchannel* p2pchnl):data(data_in), data_len(lens), st(st), p2pchnl(p2pchnl){
+        is_contain = true;
+    }
+    
     /*from other's*/
     Ram(uint32_t lens, std::string st, P2Pchannel* p2pchnl):data_len(lens), st(st), p2pchnl(p2pchnl){
         data_ptr = (T*)malloc(sizeof(T)*lens);
@@ -323,7 +347,10 @@ public:
             }
         }
     }
-    T read(uint32_t idex, bool is_rep = true, T (*read_cb)(T a, uint32_t b) = [](T a, uint32_t b) -> T {return a * b;}){
+    T read(uint32_t idex, bool is_rep = true, 
+            T (*mul_cb)(T a, uint32_t b) = [](T a, uint32_t b) -> T {return a * b;},
+            T (*add_cb)(T a, T b) = [](T a, T b) -> T {return a + b;}
+            ){
         /*对于ins 直接读block 会出错， 需要分字段读取, 使用回调函数进行分字段处理*/
         /*idex i -> i0 + i1 = i2 + i3*/
         if(st == "aid"){
@@ -359,8 +386,8 @@ public:
         for(uint32_t i = 0; i < data_len; i++){
             mpz_class ans = evaluateEq(&faccess, &read_triples[read_times].first, sub(i, delta_r, data_len));
             uint32_t tmp = mpz_get_ui(ans.get_mpz_t());
-            if(i == 0) res = read_cb(data_ptr[i], tmp);
-            else res += read_cb(data_ptr[i], tmp);
+            if(i == 0) res = mul_cb(is_contain?data[i]:data_ptr[i], tmp);
+            else res = add_cb(res, mul_cb(is_contain?data[i]:data_ptr[i], tmp));
         }
         free_key<ServerKeyEq>(read_triples[read_times].first);
         read_times ++;
@@ -421,7 +448,8 @@ public:
         write_times ++;
     }
     ~Ram(){
-        free_fss_key(faccess);
+        if(init_flag)
+            free_fss_key(faccess);
     }
 
 };

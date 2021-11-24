@@ -2,7 +2,7 @@
 #define _RISC_H__
 #include <stdint.h>
 #include "preliminaries.hpp"
-
+#include "convert.h"
 #define M_LEN 32
 #define MEM_LEN 1024
 #define TAPE_LEN 32
@@ -90,6 +90,16 @@ struct Ins
             imme * other.imme
         };
     }
+    Ins operator!(){
+        return {
+            (1<<OPT_LEN) - optr,
+            (1<<INDIC_LEN) - idic,
+            (1<<REGIS_LEN) - i,
+            (1<<REGIS_LEN) - j,
+            (1<<PAD_LEN) - pad,
+            -imme
+        };
+    }
 };
 struct Env{
     WORD pc,flag;
@@ -99,6 +109,8 @@ struct Env{
     WORD tape2[TAPE_LEN];
     WORD rc,num;  
 };
+
+
 template <typename T>
 T load_T(WORD *arr, uint16_t index){
     T* nptr = reinterpret_cast<T*> (arr);
@@ -111,22 +123,32 @@ void set_T(WORD *arr, uint16_t index, T tar){
 }
 
 Ins rand_ins();
+void rand_ins(uint64_t *data, uint16_t len);
+void rand_pc(uint32_t *data, uint16_t len);
 Ins m2i(uint64_t data);
 uint64_t i2m(Ins data);
 uint64_t sub_ins(uint64_t a, uint64_t b);
 uint64_t mul_ins(uint64_t a, uint64_t b);
+uint64_t add_ins(uint64_t a, uint64_t b);
 uint64_t mul_ins(uint64_t a, uint32_t b);
+
 class Mechine{
 private:
     P2Pchannel *p2pchnl;
     std::string st;
     Env myenv;
+    Convert* conv;
     Ram<uint64_t>* ins_ram;
+    Ram<uint32_t>* m_ram;
+    Ram<uint32_t>* dm_ram;
     bool ismyenv_init = false;
 public:
 
-    Mechine(std::string st, P2Pchannel *p2pchnl):st(st),p2pchnl(p2pchnl){}
+    Mechine(std::string st, P2Pchannel *p2pchnl):st(st),p2pchnl(p2pchnl){
+        conv = new Convert(st, p2pchnl);
+    }
     Mechine(std::string st, P2Pchannel *p2pchnl, Env myenv):st(st),p2pchnl(p2pchnl),myenv(myenv){
+        conv = new Convert(st, p2pchnl);
         ismyenv_init = true;
     }
     void load_env();                //from aid
@@ -134,6 +156,9 @@ public:
     Ins load_ins();
     ~Mechine(){
         delete ins_ram;
+        delete m_ram;
+        delete dm_ram;
+        delete conv;
     }
 };
 

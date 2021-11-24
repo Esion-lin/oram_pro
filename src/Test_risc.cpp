@@ -11,6 +11,10 @@ int main(int argc, char** argv){
     set_T<uint64_t>(testenv.mem, 0, tmp);
     tmp2 = load_T<uint64_t>(testenv.mem, 0);
     testenv.pc = 0;
+    testenv.flag = 1;
+    for(int i = 0; i < M_LEN; i++){
+        testenv.m[i] = i;
+    }
     Ins ans = m2i(tmp2);
     std::cout<<ans;
 

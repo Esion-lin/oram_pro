@@ -45,33 +45,78 @@ uint64_t sub_ins(uint64_t a, uint64_t b){
     uint64_t res = i2m(m2i(a) - m2i(b));
     return res;
 }
+uint64_t add_ins(uint64_t a, uint64_t b){
+    uint64_t res = i2m(m2i(a) + m2i(b));
+    return res;
+}
 uint64_t mul_ins(uint64_t a, uint64_t b){
     uint64_t res = i2m(m2i(a) * m2i(b));
     return res;
 }
-uint64_t mul_ins(uint64_t a, uint32_t b){
-    uint64_t tmp = b;
-    tmp <<= 32;
-    tmp += b;
-    return mul_ins(a, tmp);
+uint64_t mul_ins_single(uint64_t a, uint32_t b){
+    Ins ans;
+    ans.optr = b%(1<<OPT_LEN);
+    ans.idic = b%(1<<INDIC_LEN);
+    ans.i = b%(1<<REGIS_LEN);
+    ans.j = b%(1<<REGIS_LEN);
+    ans.pad = b%(1<<PAD_LEN);
+    ans.imme = b;
+    return i2m(m2i(a) * ans);
+}
+void rand_ins(uint64_t *data, uint16_t len){
+    for(int i = 0; i < len; i++){
+        data[i] = i2m(rand_ins());
+    }
+}
+void rand_pc(uint32_t *data, uint16_t len){
+    for(int i = 0; i < len; i++){
+        data[i] = rand() % MEM_LEN;
+    }
 }
 //from aid
 void Mechine::load_env(){
     replicated_share<WORD>(myenv.m, M_LEN, st, p2pchnl);
-    /*TODO: add a callback func*/
-    replicated_share<INS_TYPE>(reinterpret_cast<INS_TYPE*>(myenv.mem), MEM_LEN/2, st, p2pchnl, sub_ins);
-    
+    replicated_share<INS_TYPE>(reinterpret_cast<INS_TYPE*>(myenv.mem), MEM_LEN/2, st, p2pchnl, sub_ins, rand_ins);
     replicated_share<WORD>(myenv.tape1, TAPE_LEN, st, p2pchnl);
     replicated_share<WORD>(myenv.tape2, TAPE_LEN, st, p2pchnl);
     
-    fourpc_share<WORD>(&(myenv.pc), 2, st, p2pchnl);
+    fourpc_share<WORD>(&(myenv.pc), 1, st, p2pchnl, [](WORD a, WORD b) -> WORD{return sub(a, b, MEM_LEN);}, rand_pc);
+    fourpc_share<WORD>(&(myenv.flag), 1, st, p2pchnl);
     twopc_share<WORD>(&(myenv.rc), 2, st, p2pchnl);
     ins_ram = new Ram<uint64_t>(reinterpret_cast<uint64_t*>(myenv.mem), MEM_LEN/2, st, p2pchnl);
-    ins_ram->init();
+    m_ram = new Ram<WORD>(myenv.m, M_LEN, st, p2pchnl);
+    dupliM<uint32_t> dup = {M_LEN, 0, myenv.m};
+    dm_ram = new Ram<WORD>(dup, 2* M_LEN, st, p2pchnl);
+    ins_ram->init();m_ram->init();dm_ram->init();
 }            
 void Mechine::load_env(std::string path){}//from file
 
 Ins Mechine::load_ins(){
+    /*offline*/
     ins_ram->prepare_read(1);
-    return m2i(ins_ram->read(myenv.pc, false, mul_ins));
+    m_ram->prepare_read(2);
+    dm_ram->prepare_read(1);
+    conv->fourpc_zeroshare<uint32_t>(2);
+
+    
+    Ins now_ins = m2i(ins_ram->read(myenv.pc, false, mul_ins_single, add_ins));
+    if(st == "player1" || st == "player3"){
+        now_ins = !now_ins;
+    }
+    /*make flag and imme replicated*/
+    WORD arr[2] = {myenv.flag, now_ins.imme};
+    conv->fourpc_share_2_replicated_share<uint32_t>(arr, 2);
+    myenv.flag = arr[0]; 
+    dm_ram->data.A = arr[1]; 
+    std::cout<<dm_ram->data.A<<std::endl;
+    /*take Ri, Rj, A*/
+    
+    uint32_t Ri = m_ram->read(now_ins.i, false);
+    uint32_t Rj = m_ram->read(now_ins.j, false);
+    uint32_t A = dm_ram->read(now_ins.idic, false);
+    
+    std::cout<<"Ri "<<Ri<<" Rj "<<Rj<<" A "<<A<<std::endl;
+    return now_ins;
+    
+    
 }
