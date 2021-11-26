@@ -93,4 +93,11 @@ template <typename T>
 void free_key(T& key){
     free(key.cw[0]);free(key.cw[1]);
 }
+template <typename T>
+void free_keys(T* keys, uint16_t len){
+    for(int i = 0; i < len; i++){
+        free(keys[i].cw[0]);free(keys[i].cw[1]);
+    }
+    
+}
 #endif

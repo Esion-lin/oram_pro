@@ -1,5 +1,6 @@
 #include "preliminaries.hpp"
 #include "easylogging++.h"
+#include "scmp.hpp"
 #include "risc.h"
 #include <bitset>
 INITIALIZE_EASYLOGGINGPP
@@ -20,7 +21,17 @@ int main(int argc, char** argv){
 
     Config* cfg = new Config("./config.json");
     P2Pchannel* p2pchnl = new P2Pchannel(cfg->Pmap, argv[1]);
-    
+    // Compare* cmp = new Compare();
+    // cmp->scmp_off(st, p2pchnl, 2);
+    // if(st == "player0"){
+    //     uint32_t arr[2] = {1000,3};
+    //     uint32_t brr[2] = {0,123};
+    //     cmp->scmp(st, p2pchnl, arr, brr, 2);
+    // }else{
+    //     uint32_t arr[2] = {0,0};
+    //     uint32_t brr[2] = {0,123};
+    //     cmp->scmp(st, p2pchnl, arr, brr, 2);
+    // }
     Mechine * now_mechine;
     if(st == "aid"){
         now_mechine = new Mechine(argv[1], p2pchnl, testenv);

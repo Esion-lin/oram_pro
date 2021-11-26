@@ -14,6 +14,7 @@
 #define IMM_LEN 32
 #define WORD uint32_t
 #define INS_TYPE uint64_t
+#define OPT_SIZE 22
 //define ins
 
 #define AND     0x01
@@ -141,6 +142,7 @@ private:
     Ram<uint64_t>* ins_ram;
     Ram<uint32_t>* m_ram;
     Ram<uint32_t>* dm_ram;
+    Ram<uint32_t>* beta_ram;
     bool ismyenv_init = false;
 public:
 
@@ -159,6 +161,7 @@ public:
         delete m_ram;
         delete dm_ram;
         delete conv;
+        delete beta_ram;
     }
 };
 

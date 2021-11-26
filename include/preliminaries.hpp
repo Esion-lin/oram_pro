@@ -9,7 +9,7 @@
 #include "fss-common.h"
 #include "fss_help.hpp"
 #include <vector>
-
+#include <set>
 using namespace std;
 using fss_triple = pair<ServerKeyEq, uint32_t>;
 using write_tuple = tuple<ServerKeyEq, ServerKeyEq, uint32_t, uint32_t, uint32_t>;
@@ -146,7 +146,34 @@ void diag_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl
     }
 }
 template <typename R>
+void fourpc_reveal(R* data, R* data2, int len, std::set<std::string> sts, std::string st, P2Pchannel *p2pchnl, 
+                                    R (*share_cb)(R a, R b) = [](R a, R b) -> R{return a + b;}){
+    /*reveal to target parties*/
+    std::string ll[4] = {"player0","player1","player2","player3"};
+    if(st == "aid") return;
+    /*send phase*/
+    for(auto &ele:sts){
+        if(ele != st)
+            p2pchnl->send_data_to(ele, data, len*sizeof(R));
+    }
+    /*recv phase*/
+    R* tmp = (R*) malloc(len*sizeof(R));
+    memcpy(data2, data, len*sizeof(R));
+    if(sts.find(st) != sts.end()){
+        for(auto &ele:ll){
+            if(ele != st){
+                p2pchnl->recv_data_from(ele, tmp, len*sizeof(R));
+                for(int i = 0 ; i < len; i ++){
+                    data2[i] = share_cb(data2[i], tmp[i]);
+                }
+            }
+        }
+    }
+    free(tmp);
+}
+template <typename R>
 void fourpc_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
+    /*reveal to all parties*/
     if(st == "aid") return;
     if(st != "player0")
         p2pchnl->send_data_to("player0", data, len*sizeof(R));
@@ -346,6 +373,40 @@ public:
                 
             }
         }
+    }
+    void recover_list(uint32_t idex, uint32_t * list, bool is_rep = true){
+        if(st == "aid"){
+            return;
+        }
+        if(read_times >= read_triples.size()){
+            /*异常处理*/
+            //return;
+        }
+        uint32_t delta_r;
+        if(is_rep){
+            uint32_t delta = sub(idex, read_triples[read_times].second, data_len);
+            twopc_reveal<uint32_t>(&delta, &delta_r, 1, st, p2pchnl);
+        }else{
+            /*TODO: 添加0-shared*/
+            uint32_t delta1[2],delta2[2];
+            if(st == "player0"||st == "player1")
+                delta1[0] = sub(idex, read_triples[read_times].second, data_len);
+            else delta1[0] = idex;
+            if(st == "player2"||st == "player3")
+                delta1[1] = sub(idex, read_triples[read_times].second, data_len);
+            else delta1[1] = idex;
+            fourpc_reveal<uint32_t>(delta1, delta2, 2, st, p2pchnl);
+            if(st == "player0"||st == "player1") delta_r = delta2[0];
+            else delta_r = delta2[1];
+        }
+        while(delta_r > 2*data_len) delta_r+=data_len;
+        delta_r = delta_r % data_len;
+        for(uint32_t i = 0; i < data_len; i++){
+            mpz_class ans = evaluateEq(&faccess, &read_triples[read_times].first, sub(i, delta_r, data_len));
+            list[i] = mpz_get_ui(ans.get_mpz_t());
+        }
+        free_key<ServerKeyEq>(read_triples[read_times].first);
+        read_times ++;
     }
     T read(uint32_t idex, bool is_rep = true, 
             T (*mul_cb)(T a, uint32_t b) = [](T a, uint32_t b) -> T {return a * b;},

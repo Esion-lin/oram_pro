@@ -87,7 +87,8 @@ void Mechine::load_env(){
     m_ram = new Ram<WORD>(myenv.m, M_LEN, st, p2pchnl);
     dupliM<uint32_t> dup = {M_LEN, 0, myenv.m};
     dm_ram = new Ram<WORD>(dup, 2* M_LEN, st, p2pchnl);
-    ins_ram->init();m_ram->init();dm_ram->init();
+    beta_ram = new Ram<WORD>(nullptr, 1<<OPT_LEN, st, p2pchnl);
+    ins_ram->init();m_ram->init();dm_ram->init();beta_ram->init();
 }            
 void Mechine::load_env(std::string path){}//from file
 
@@ -96,6 +97,7 @@ Ins Mechine::load_ins(){
     ins_ram->prepare_read(1);
     m_ram->prepare_read(2);
     dm_ram->prepare_read(1);
+    beta_ram->prepare_read(1);
     conv->fourpc_zeroshare<uint32_t>(2);
 
     
@@ -108,14 +110,16 @@ Ins Mechine::load_ins(){
     conv->fourpc_share_2_replicated_share<uint32_t>(arr, 2);
     myenv.flag = arr[0]; 
     dm_ram->data.A = arr[1]; 
-    std::cout<<dm_ram->data.A<<std::endl;
     /*take Ri, Rj, A*/
-    
+    uint32_t betas[1<<OPT_LEN];
     uint32_t Ri = m_ram->read(now_ins.i, false);
     uint32_t Rj = m_ram->read(now_ins.j, false);
     uint32_t A = dm_ram->read(now_ins.idic, false);
-    
+    beta_ram->recover_list(now_ins.optr, betas, false);
     std::cout<<"Ri "<<Ri<<" Rj "<<Rj<<" A "<<A<<std::endl;
+    for(int i = 0; i < OPT_SIZE; i++){
+        std::cout<<betas[i]<<" ";
+    }
     return now_ins;
     
     

@@ -7,7 +7,7 @@ class Encode{
     public:
     T threshold;
     Encode(){
-        threshold = (T)pow(2, sizeof(T)*8 - 1);
+        threshold = (T)(1 << (sizeof(T)*8 - 1));
     }
     int to_int(T value){
         return (int)value;
