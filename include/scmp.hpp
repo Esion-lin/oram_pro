@@ -10,11 +10,17 @@
 #include <array>
 using scmp_tuple = tuple<ServerKeyLt, ServerKeyLt, array<uint32_t,2>, array<uint64_t,2>>;
 class Compare{
+    private:
+    uint64_t* R_plus;
+    uint64_t* A_plus;
+    uint64_t* A_op_B;
     public:
     std::vector<scmp_tuple> cks;
     Fss cmpkey_32, cmpkey_33;
+    Convert *conv;
     Compare(){};
     void scmp_off(std::string st, P2Pchannel* p2pchnl, uint32_t len, int extend_len = 33){
+        conv = new Convert(st, p2pchnl);
         uint32_t tmp32[2];
         uint64_t tmp33[2];
         if(st == "aid"){
@@ -70,14 +76,15 @@ class Compare{
             }
 
         }
+        conv->fourpc_zeroshare<uint32_t>(len);
         p2pchnl->flush_all();
     }
     void overflow(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
                         uint64_t (*share_cb)(uint64_t a, uint64_t b) = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
-        Convert *conv = new Convert(st, p2pchnl);
-        conv->fourpc_zeroshare<uint32_t>(len);
+        
+        
         if(st == "aid"){
-            delete conv;
+            
             return;
         }
         uint64_t* R_plus = (uint64_t*) malloc(sizeof(uint64_t) * len);
@@ -113,7 +120,7 @@ class Compare{
 
             }
             tmp[i] = share_cb(R_hat[i], A_hat[i]) + get<3>(cks[i])[0] %((uint64_t)1<<extend_len);
-            tmp2[i] = share_cb(R_hat[i], A_hat[i]) + get<2>(cks[i])[0] %((uint64_t)1<<extend_len);
+            //tmp2[i] = share_cb(R_hat[i], A_hat[i]) + get<2>(cks[i])[0] %((uint64_t)1<<extend_len);
             free_key<ServerKeyLt>(get<0>(cks[i]));
         }
         fourpc_reveal<uint64_t>(tmp, tmp2, len, {"player0","player1","player2","player3"}, st, p2pchnl, 
@@ -138,7 +145,7 @@ class Compare{
         }
         
         conv->fourpc_share_2_replicated_share<uint32_t>(flags, len);
-        delete conv;
+        
         free(R_plus);
         free(A_plus);
         free(A_hat);
@@ -147,7 +154,110 @@ class Compare{
         free(tmp2);
             
     }
+    /*split*/
+    void overflow_1(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
+                        uint64_t (*share_cb)(uint64_t a, uint64_t b) = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+        
+        
+        if(st == "aid"){
+            
+            return;
+        }
+        R_plus = (uint64_t*) malloc(sizeof(uint64_t) * len);
+        A_plus = (uint64_t*) malloc(sizeof(uint64_t) * len);
+        for(int i = 0; i < len; i ++){
+            R_plus[i] = (uint64_t)R[i] + get<2>(cks[i])[1];
+            A_plus[i] = (uint64_t)A[i] + get<2>(cks[i])[0];
+        }
+        
+        fourpc_reveal_1<uint64_t>(R_plus, R_plus, len, {"player0","player2"}, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<extend_len);});      
+        fourpc_reveal_1<uint64_t>(A_plus, A_plus, len, {"player1","player3"}, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<extend_len);});
+    }
+    void overflow_2(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
+                        uint64_t (*share_cb)(uint64_t a, uint64_t b) = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+        
+        
+        if(st == "aid"){
+            
+            return;
+        }
+        A_op_B = (uint64_t*) malloc(sizeof(uint64_t) * len);
+        fourpc_reveal_2<uint64_t>(R_plus, A_op_B, len, {"player0","player2"}, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<extend_len);});
+        memcpy(R_plus, A_op_B, len*sizeof(uint64_t));
+        fourpc_reveal_2<uint64_t>(A_plus, A_op_B, len, {"player1","player3"}, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<extend_len);});
+        memcpy(A_plus, A_op_B, len*sizeof(uint64_t));
+        uint64_t*R_hat = (uint64_t*) malloc(sizeof(uint64_t) * len);
+        uint64_t*A_hat = (uint64_t*) malloc(sizeof(uint64_t) * len);
+        
+        for(int i = 0; i < len; i ++){
+            uint32_t beta;
+            if(st == "player0"|| st == "player2"){
+                beta = (uint32_t)evaluateLt(&cmpkey_32, &get<0>(cks[i]), R_plus[i]);
+                if(st == "player2") beta = -beta;
+                R_hat[i] = ((uint64_t)R[i] + ((uint64_t)1<<extend_len) - (((uint64_t)beta<<32) %((uint64_t)1<<extend_len)))%((uint64_t)1<<extend_len);
+                A_hat[i] = A[i];
+                
+            }else{
+                beta = (uint32_t)evaluateLt(&cmpkey_32, &get<0>(cks[i]), A_plus[i]);
+                if(st == "player3") beta = -beta;
+                R_hat[i] = R[i];
+                A_hat[i] = ((uint64_t)A[i] + ((uint64_t)1<<extend_len) - (((uint64_t)beta<<32) %((uint64_t)1<<extend_len)))%((uint64_t)1<<extend_len);
+
+            }
+            A_op_B[i] = share_cb(R_hat[i], A_hat[i]) + get<3>(cks[i])[0] %((uint64_t)1<<extend_len);
+            free_key<ServerKeyLt>(get<0>(cks[i]));
+        }
+        fourpc_reveal_1<uint64_t>(A_op_B, A_op_B, len, {"player0","player1","player2","player3"}, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<extend_len);});
+        free(R_plus);
+        free(A_plus);
+        free(A_hat);
+        free(R_hat);  
+    }
+    void overflow_3(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
+                        uint64_t (*share_cb)(uint64_t a, uint64_t b) = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+        if(st == "aid"){
+            
+            return;
+        }
+        uint64_t* tmp = (uint64_t*) malloc(sizeof(uint64_t) * len);
+        fourpc_reveal_2<uint64_t>(A_op_B, tmp, len, {"player0","player1","player2","player3"}, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<extend_len);});
+        for(int i = 0; i < len; i ++){
+            if(st == "player1"|| st == "player3"){
+                flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<1>(cks[i]), tmp[i]);
+                if(st == "player3") flags[i] = -flags[i];
+                
+                
+            }else{
+                flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<1>(cks[i]), tmp[i]);
+                if(st == "player0") flags[i] = (uint32_t)1 - flags[i];
+            }
+            free_key<ServerKeyLt>(get<1>(cks[i]));
+        }
+        for(int i = 0; i < cks.size() - len; i++){
+            cks[i] = cks[len + i];
+        }
+        for(int i = 0; i <  len; i++){
+            cks.pop_back();
+        }
+        
+        conv->fourpc_share_2_replicated_share_1<uint32_t>(flags, len);
+        free(tmp);
+        free(A_op_B);
+            
+    }
+    void overflow_end(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
+                        uint64_t (*share_cb)(uint64_t a, uint64_t b) = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+
+        conv->fourpc_share_2_replicated_share_2<uint32_t>(flags, len);
+    }
     ~Compare(){
+        delete conv;
         free_fss_key(cmpkey_32);
         free_fss_key(cmpkey_33);
     }

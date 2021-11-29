@@ -11,13 +11,18 @@ private:
     uint16_t zero_share_len;
     bool zero_flag = false;
     P2Pchannel * p2pchnl;
+    uint16_t ptr;
     string st;
 public:
-    Convert(string st, P2Pchannel *p2pchnl):st(st),p2pchnl(p2pchnl){}
+    Convert(string st, P2Pchannel *p2pchnl):st(st),p2pchnl(p2pchnl){
+        
+    }
     template <typename T>
     void fourpc_zeroshare(uint16_t len){
         /*生成四方零share*/
-        zero_share_len = len;
+        if(zero_flag) free(zero_share);
+        ptr = 0;
+        zero_share_len = len; 
         zero_share = malloc(len*sizeof(T));
         if(st == "aid"){
             T r1[len],r2[len],r3[len],r0[len];
@@ -29,29 +34,56 @@ public:
             p2pchnl->send_data_to("player1", r1, sizeof(T)*len);
             p2pchnl->send_data_to("player2", r2, sizeof(T)*len);
             p2pchnl->send_data_to("player3", r3, sizeof(T)*len);
-            free(zero_share);
         }else{
             p2pchnl->recv_data_from("aid", reinterpret_cast<T*>(zero_share), sizeof(T)*len);
+            
         }
-        
         zero_flag = true;
+        
+        
     }
     template <typename T>
     void fourpc_share_2_replicated_share(T * data, uint16_t len){
         if(!zero_flag) return;
-        if(len > zero_share_len) return;
+        if(len + ptr > zero_share_len) return;
         if(st == "aid"){
             return;
         }
         T data2[len];
         
         for(int i = 0; i < len; i ++){
-            data2[i] = data[i] + reinterpret_cast<T*>(zero_share)[i];
+            data2[i] = data[i] + reinterpret_cast<T*>(zero_share)[ptr + i];
         }
         
         twopc_reveal<T>(data2, data, len, st, p2pchnl);
-        free(zero_share);
-        zero_flag = false;
+        ptr += len;
+    }
+    template <typename T>
+    void fourpc_share_2_replicated_share_1(T * data, uint16_t len){
+        if(!zero_flag) return;
+        if(len + ptr > zero_share_len) return;
+        if(st == "aid"){
+            return;
+        }
+        
+        for(int i = 0; i < len; i ++){
+            data[i] = data[i] + reinterpret_cast<T*>(zero_share)[ptr + i];
+        }
+        twopc_reveal_1<T>(data, data, len, st, p2pchnl);
+    }
+    template <typename T>
+    void fourpc_share_2_replicated_share_2(T * data, uint16_t len){
+        if(!zero_flag) return;
+        if(len + ptr > zero_share_len) return;
+        if(st == "aid"){
+            return;
+        }
+        T data2[len];
+        twopc_reveal_2<T>(data2, data, len, st, p2pchnl);
+        ptr += len;
+    }
+    ~Convert(){
+        if(zero_flag) free(zero_share);
     }
 
 };

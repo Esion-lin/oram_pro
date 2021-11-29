@@ -142,13 +142,13 @@ void twopc_reveal_1(R* data, R* data2, int len, std::string st, P2Pchannel *p2pc
 template <typename R>
 void twopc_reveal_2(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
     if(st == "player0"){
-        p2pchnl->recv_data_from("player1", data2, len*sizeof(R));
+        p2pchnl->recv_data_from("player1", data, len*sizeof(R));
     }else if(st == "player1"){
-        p2pchnl->recv_data_from("player0", data2, len*sizeof(R));
+        p2pchnl->recv_data_from("player0", data, len*sizeof(R));
     }else if(st == "player2"){
-        p2pchnl->recv_data_from("player3", data2, len*sizeof(R));
+        p2pchnl->recv_data_from("player3", data, len*sizeof(R));
     }else if(st == "player3"){
-        p2pchnl->recv_data_from("player2", data2, len*sizeof(R));
+        p2pchnl->recv_data_from("player2", data, len*sizeof(R));
     }
     for(int i = 0 ; i < len; i ++){
         data2[i] = data[i] + data2[i];
