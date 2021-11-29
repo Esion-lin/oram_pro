@@ -31,7 +31,7 @@ uint64_t i2m(Ins data){
     ans+= data.imme;
     return ans;
 }
-Ins rand_ins(){
+Ins rand_ins_t(){
     Ins ans;
     ans.optr = rand()%(1<<OPT_LEN);
     ans.idic = rand()%(1<<INDIC_LEN);
@@ -65,7 +65,7 @@ uint64_t mul_ins_single(uint64_t a, uint32_t b){
 }
 void rand_ins(uint64_t *data, uint16_t len){
     for(int i = 0; i < len; i++){
-        data[i] = i2m(rand_ins());
+        data[i] = i2m(rand_ins_t());
     }
 }
 void rand_pc(uint32_t *data, uint16_t len){

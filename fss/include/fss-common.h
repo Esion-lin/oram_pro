@@ -67,7 +67,7 @@ struct MPKey {
 
 // Assumes integers are 64 bits
 inline int getBit(uint64_t n, uint64_t pos) {
-    return (n & ( 1 << (64-pos))) >> (64-pos);
+    return (n & ( (uint64_t)1 << (64-pos))) >> (64-pos);
 }
 
 // Converts byte array into 64-bit integer

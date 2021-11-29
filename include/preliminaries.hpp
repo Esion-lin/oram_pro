@@ -10,6 +10,7 @@
 #include "fss_help.hpp"
 #include <vector>
 #include <set>
+#include <functional>
 using namespace std;
 using fss_triple = pair<ServerKeyEq, uint32_t>;
 using write_tuple = tuple<ServerKeyEq, ServerKeyEq, uint32_t, uint32_t, uint32_t>;
@@ -41,8 +42,8 @@ void rand_t(T* data, uint16_t data_len){
 
 template <typename T>
 void replicated_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl, 
-                        T (*share_cb)(T a, T b) = [](T a, T b) -> T{return a - b;}, 
-                        void (*rand_data)(T *a, uint16_t data_len) = rand_t<T>
+                        function<T (T, T)>share_cb = [](T a, T b) -> T{return a - b;}, 
+                        function<void (T*, uint16_t)>rand_data = rand_t<T>
                         ){
     /*registers, memory and tapes*/
     if(st == "aid"){
@@ -66,8 +67,8 @@ void replicated_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchn
 }
 template <typename T>
 void fourpc_share(T* data, uint16_t lens, std::string st, P2Pchannel *p2pchnl, 
-                            T (*share_cb)(T a, T b) = [](T a, T b) -> T{return a - b;},
-                            void (*rand_data)(T *a, uint16_t data_len) = rand_t<T>){
+                            function<T (T, T)>share_cb = [](T a, T b) -> T{return a - b;},
+                            function<void (T*, uint16_t)>rand_data = rand_t<T>){
     if(st == "aid"){
         T *data0 = (T*) malloc(sizeof(T)*lens);
         T *data1 = (T*) malloc(sizeof(T)*lens);
@@ -125,6 +126,34 @@ void twopc_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchn
         data2[i] = data[i] + data2[i];
     }
 }
+/*split twopc_reveal*/
+template <typename R>
+void twopc_reveal_1(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
+    if(st == "player0"){
+        p2pchnl->send_data_to("player1", data, len*sizeof(R));
+    }else if(st == "player1"){
+        p2pchnl->send_data_to("player0", data, len*sizeof(R));
+    }else if(st == "player2"){
+        p2pchnl->send_data_to("player3", data, len*sizeof(R));
+    }else if(st == "player3"){
+        p2pchnl->send_data_to("player2", data, len*sizeof(R));
+    }
+}
+template <typename R>
+void twopc_reveal_2(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
+    if(st == "player0"){
+        p2pchnl->recv_data_from("player1", data2, len*sizeof(R));
+    }else if(st == "player1"){
+        p2pchnl->recv_data_from("player0", data2, len*sizeof(R));
+    }else if(st == "player2"){
+        p2pchnl->recv_data_from("player3", data2, len*sizeof(R));
+    }else if(st == "player3"){
+        p2pchnl->recv_data_from("player2", data2, len*sizeof(R));
+    }
+    for(int i = 0 ; i < len; i ++){
+        data2[i] = data[i] + data2[i];
+    }
+}
 template <typename R>
 void diag_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
     if(st == "player0"){
@@ -145,9 +174,38 @@ void diag_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl
         data2[i] = data[i] + data2[i];
     }
 }
+/*split diag_reveal*/
+template <typename R>
+void diag_reveal_1(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
+    if(st == "player0"){
+        p2pchnl->send_data_to("player2", data, len*sizeof(R));     
+    }else if(st == "player2"){
+        p2pchnl->send_data_to("player0", data, len*sizeof(R));  
+    }else if(st == "player1"){
+        p2pchnl->send_data_to("player3", data, len*sizeof(R));
+    }else if(st == "player3"){
+        p2pchnl->send_data_to("player1", data, len*sizeof(R));
+    }
+}
+template <typename R>
+void diag_reveal_2(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
+    if(st == "player0"){
+        p2pchnl->recv_data_from("player2", data2, len*sizeof(R));
+    }else if(st == "player2"){
+        p2pchnl->recv_data_from("player0", data2, len*sizeof(R));    
+    }else if(st == "player1"){
+        p2pchnl->recv_data_from("player3", data2, len*sizeof(R));
+    }else if(st == "player3"){
+        p2pchnl->recv_data_from("player1", data2, len*sizeof(R));  
+    }
+    for(int i = 0 ; i < len; i ++){
+        data2[i] = data[i] + data2[i];
+    }
+}
+
 template <typename R>
 void fourpc_reveal(R* data, R* data2, int len, std::set<std::string> sts, std::string st, P2Pchannel *p2pchnl, 
-                                    R (*share_cb)(R a, R b) = [](R a, R b) -> R{return a + b;}){
+                                    function<R (R, R)>share_cb = [](R a, R b) -> R{return a + b;}){
     /*reveal to target parties*/
     std::string ll[4] = {"player0","player1","player2","player3"};
     if(st == "aid") return;
@@ -171,6 +229,44 @@ void fourpc_reveal(R* data, R* data2, int len, std::set<std::string> sts, std::s
     }
     free(tmp);
 }
+
+/*split fourpc_reveal*/
+
+template <typename R>
+void fourpc_reveal_1(R* data, R* data2, int len, std::set<std::string> sts, std::string st, P2Pchannel *p2pchnl, 
+                                    function<R (R, R)>share_cb = [](R a, R b) -> R{return a + b;}){
+    /*reveal to target parties*/
+    std::string ll[4] = {"player0","player1","player2","player3"};
+    if(st == "aid") return;
+    /*send phase*/
+    for(auto &ele:sts){
+        if(ele != st)
+            p2pchnl->send_data_to(ele, data, len*sizeof(R));
+    }
+}
+
+template <typename R>
+void fourpc_reveal_2(R* data, R* data2, int len, std::set<std::string> sts, std::string st, P2Pchannel *p2pchnl, 
+                                    function<R (R, R)>share_cb = [](R a, R b) -> R{return a + b;}){
+    /*reveal to target parties*/
+    std::string ll[4] = {"player0","player1","player2","player3"};
+    if(st == "aid") return;
+    /*recv phase*/
+    R* tmp = (R*) malloc(len*sizeof(R));
+    memcpy(data2, data, len*sizeof(R));
+    if(sts.find(st) != sts.end()){
+        for(auto &ele:ll){
+            if(ele != st){
+                p2pchnl->recv_data_from(ele, tmp, len*sizeof(R));
+                for(int i = 0 ; i < len; i ++){
+                    data2[i] = share_cb(data2[i], tmp[i]);
+                }
+            }
+        }
+    }
+    free(tmp);
+}
+
 template <typename R>
 void fourpc_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
     /*reveal to all parties*/

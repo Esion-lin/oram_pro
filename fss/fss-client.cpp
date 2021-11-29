@@ -247,7 +247,6 @@ void generateTreeEq(Fss* f, ServerKeyEq* k0, ServerKeyEq* k1, uint64_t a_i, uint
 void generateTreeLt(Fss* f, ServerKeyLt* k0, ServerKeyLt* k1, uint64_t a_i, uint64_t b_i){
 
     uint32_t n = f->numBits;
-
     // Set up num_bits and allocate memory
     k0->cw[0] = (CWLt*) malloc(sizeof(CWLt) * (n-1));
     k0->cw[1] = (CWLt*) malloc(sizeof(CWLt) * (n-1));

@@ -82,13 +82,11 @@ mpz_class evaluateEq(Fss* f, ServerKeyEq *k, uint64_t x) {
 
 uint64_t evaluateLt(Fss* f, ServerKeyLt *k, uint64_t x) {
     uint32_t n = f->numBits;
-
     int xi = getBit(x, (64-n+1));
     unsigned char s[16];
     memcpy(s, k->s[xi], 16);
     unsigned char t = k->t[xi];
     uint64_t v = k->v[xi];
-
     unsigned char sArray[32];
     unsigned char temp[2];
     unsigned char out[64];
@@ -108,6 +106,7 @@ uint64_t evaluateLt(Fss* f, ServerKeyLt *k, uint64_t x) {
         int xStart = 16 * xi;
         memcpy(s, (unsigned char*) (sArray + xStart), 16);
         for (uint32_t j = 0; j < 16; j++) {
+            
             s[j] = s[j] ^ k->cw[t][i-1].cs[xi][j];
         }
         //printf("%d: t: %d %d, ct: %d, bit: %d\n", i, temp[0], temp[1], k->cw[t][i-1].ct[xi], xi);

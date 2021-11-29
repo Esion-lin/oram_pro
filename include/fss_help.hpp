@@ -81,6 +81,7 @@ inline void send_lt_key(ServerKeyLt& key, Fss &fkey, std::string player, P2Pchan
 }
 inline void recv_lt_key(ServerKeyLt& key, Fss &fkey, std::string player, P2Pchannel *p2pchnl){
     p2pchnl->recv_data_from(player,&key,sizeof(ServerKeyLt));
+    std::cout<<"recv nums "<<fkey.numBits<<std::endl;
     key.cw[0] = (CWLt*) malloc(sizeof(CWLt)*(fkey.numBits - 1));
     key.cw[1] = (CWLt*) malloc(sizeof(CWLt)*(fkey.numBits - 1));
     p2pchnl->recv_data_from(player,key.cw[0],sizeof(CWLt)*(fkey.numBits - 1));

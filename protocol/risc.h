@@ -123,7 +123,7 @@ void set_T(WORD *arr, uint16_t index, T tar){
     nptr[index] = tar;
 }
 
-Ins rand_ins();
+Ins rand_ins_t();
 void rand_ins(uint64_t *data, uint16_t len);
 void rand_pc(uint32_t *data, uint16_t len);
 Ins m2i(uint64_t data);
