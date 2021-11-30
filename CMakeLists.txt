@@ -36,6 +36,8 @@ add_library(risc protocol/src/risc.cpp
 target_link_libraries(fss gmp gmpxx ${OPENSSL_LIBRARIES})
 target_link_libraries(risc fss)
 add_executable(test src/Test_ram.cpp)
+add_executable(ORAM_TEST src/oram_rw_test.cpp)
 add_executable(test_risc src/Test_risc.cpp)
 target_link_libraries(test PRIVATE risc log nlohmann_json)
+target_link_libraries(ORAM_TEST PRIVATE risc log nlohmann_json)
 target_link_libraries(test_risc PRIVATE risc log nlohmann_json)

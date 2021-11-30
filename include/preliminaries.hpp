@@ -315,7 +315,7 @@ struct dupliM
     T *m;
     T operator[](int i){
         if(i<lens) return A;
-        if(i >= 2*lens) return 0;
+        if(i >= 2*lens) return A;
         return m[i-lens];
     }
 };
@@ -561,7 +561,6 @@ public:
         T deltaV_plus = target - org - get<4>(write_triples[write_times]);
         T deltaV;
         diag_reveal<T>(&deltaV_plus, &deltaV, 1, st, p2pchnl);
-        std::cout<<"deltaV "<<deltaV<<std::endl;
         uint32_t delta_r[2];
         if(is_rep){
             uint32_t delta[2] = {sub(idex, get<2>(write_triples[write_times]), data_len), sub(idex, get<3>(write_triples[write_times]), data_len)};
@@ -593,12 +592,12 @@ public:
         for(uint32_t i = 0; i < data_len; i++){
             mpz_class ans = evaluateEq(&faccess, &get<0>(write_triples[write_times]), sub(i, delta_r[0], data_len));
             uint32_t tmp = mpz_get_ui(ans.get_mpz_t());
-            if(st == "player0" || st == "player1") data_ptr[i] += tmp;
-            else data_ptr[i] -= tmp;
+            if(st == "player0" || st == "player1") data_ptr[i] = data_ptr[i] + tmp;
+            else data_ptr[i] = data_ptr[i] - tmp;
             ans = evaluateEq(&faccess, &get<1>(write_triples[write_times]), sub(i, delta_r[1], data_len));
             tmp = mpz_get_ui(ans.get_mpz_t());
-            if(st == "player0" || st == "player1") data_ptr[i] += deltaV*tmp;
-            else data_ptr[i] -= deltaV*tmp;
+            if(st == "player0" || st == "player1") data_ptr[i] = data_ptr[i] + deltaV*tmp;
+            else data_ptr[i] = data_ptr[i] - deltaV*tmp;
         }
         free_key<ServerKeyEq>(get<1>(write_triples[write_times]));
         free_key<ServerKeyEq>(get<0>(write_triples[write_times]));

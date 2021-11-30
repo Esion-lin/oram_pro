@@ -24,11 +24,13 @@ public:
         ptr = 0;
         zero_share_len = len; 
         zero_share = malloc(len*sizeof(T));
+        T zero;
+        memset(&zero,0,sizeof(T));
         if(st == "aid"){
             T r1[len],r2[len],r3[len],r0[len];
             rand_t<T>(r0, len);rand_t<T>(r1, len);rand_t<T>(r2, len);
             for(int i = 0; i < len; i++){
-                r3[i] = (uint32_t)0 - r0[i] - r1[i] - r2[i];
+                r3[i] = zero - r0[i] - r1[i] - r2[i];
             }
             p2pchnl->send_data_to("player0", r0, sizeof(T)*len);
             p2pchnl->send_data_to("player1", r1, sizeof(T)*len);

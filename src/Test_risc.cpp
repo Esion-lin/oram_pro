@@ -3,8 +3,9 @@
 #include "scmp.hpp"
 #include "risc.h"
 #include <bitset>
+#include "operation.h"
 #include "timer.hpp"
-
+#include <functional>
 std::map<std::string, double> Timer::times;
 std::map<std::string, struct timeval> Timer::ptrs;
 std::string Timer::now_name;
@@ -55,9 +56,11 @@ int main(int argc, char** argv){
     delete cmp;
     cmp = new Compare();
     Compare* cmp2 = new Compare();
-    cmp->scmp_off(st, p2pchnl, 2);
+    cmp->scmp_off(st, p2pchnl, 2, 64);
     cmp2->scmp_off(st, p2pchnl, 2);
     Timer::record("overflow2");
+    std::array<uint64_t,3> tmp_arr = {1,1,4};
+    auto multiple = std::bind(mul_t<uint64_t>, std::placeholders::_1, std::placeholders::_2, st, p2pchnl, tmp_arr);
     if(st == "player0"){
         uint32_t arr[2] = {((uint32_t)1<<31)+22,3};
         uint32_t brr[2] = {((uint32_t)1<<31)+22,123};

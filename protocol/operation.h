@@ -1,4 +1,5 @@
 #include "net.hpp"
+#include "scmp.hpp"
 class Operator_base{
     public: 
 
@@ -57,16 +58,46 @@ T mul_t(T a, T b, std::string st, P2Pchannel *p2pchnl, std::array<T, 3> triple =
     return res;
         
 }
-template <typename T>
+
 class Add_sub{
-    T* data_a;
-    T* data_b;
+private:
+    Compare *overflow = new Compare();
+    std::string st;
+    P2Pchannel*p2pchnl;
+    Convert *conv;
+public:
+
+    WORD* data_a;
+    WORD* data_b;
     uint16_t len;
-    WORD flag;
-    WORD res;
-    void rand1(){}
-    void rand2(){}
-    void rand3(){}
+    WORD* flag;
+    WORD* res;
+    Add_sub(WORD*data_a, WORD*data_b, WORD*res, WORD*flag, uint16_t len, std::string st,P2Pchannel* p2pchnl):
+                                    data_a(data_a),data_b(data_b),res(res),flag(flag),len(len),st(st),p2pchnl(p2pchnl){}
+    void offline(){
+        overflow->scmp_off(st, p2pchnl, len);
+        conv = new Convert(st, p2pchnl);
+        conv->fourpc_zeroshare<uint32_t>(len);
+    }
+    void round1(){
+        for(int i = 0; i < len; i++){
+            res[i] = data_a[i] + data_b[i];
+        }
+        conv->fourpc_share_2_replicated_share_1(res, len);
+        overflow->overflow_1(st, p2pchnl, data_a, data_b, len,flag);
+
+    }
+    void round2(){
+
+        conv->fourpc_share_2_replicated_share_2(res, len);
+        overflow->overflow_2(st, p2pchnl, data_a, data_b, len,flag);
+    }
+    void round3(){
+        overflow->overflow_3(st, p2pchnl, data_a, data_b, len,flag);
+    }
+    void roundend(){
+        overflow->overflow_end(st, p2pchnl, data_a, data_b, len,flag);
+    }
     
 };
 class Mul:public Operator_base{

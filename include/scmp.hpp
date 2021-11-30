@@ -80,7 +80,7 @@ class Compare{
         p2pchnl->flush_all();
     }
     void overflow(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
-                        uint64_t (*share_cb)(uint64_t a, uint64_t b) = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+                        function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
         
         
         if(st == "aid"){
@@ -156,7 +156,7 @@ class Compare{
     }
     /*split*/
     void overflow_1(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
-                        uint64_t (*share_cb)(uint64_t a, uint64_t b) = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+                        function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
         
         
         if(st == "aid"){
@@ -176,7 +176,7 @@ class Compare{
                     [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<extend_len);});
     }
     void overflow_2(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
-                        uint64_t (*share_cb)(uint64_t a, uint64_t b) = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+                        function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
         
         
         if(st == "aid"){
@@ -219,7 +219,7 @@ class Compare{
         free(R_hat);  
     }
     void overflow_3(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
-                        uint64_t (*share_cb)(uint64_t a, uint64_t b) = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+                        function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
         if(st == "aid"){
             
             return;
@@ -252,7 +252,7 @@ class Compare{
             
     }
     void overflow_end(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
-                        uint64_t (*share_cb)(uint64_t a, uint64_t b) = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+                        function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
 
         conv->fourpc_share_2_replicated_share_2<uint32_t>(flags, len);
     }
