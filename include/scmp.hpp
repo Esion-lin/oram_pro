@@ -9,25 +9,72 @@
 #include <tuple>
 #include <array>
 using scmp_tuple = tuple<ServerKeyLt, ServerKeyLt, array<uint32_t,2>, array<uint64_t,2>>;
+using eq_tuple = tuple<ServerKeyEq, uint32_t>;
 class Compare{
     private:
     uint64_t* R_plus;
     uint64_t* A_plus;
     uint64_t* A_op_B;
+    std::string st;
+    P2Pchannel* p2pchnl;
+    bool isconv = false;
+    bool cmpkey_32_init = false;
+    bool cmpkey_33_init = false;
     public:
     std::vector<scmp_tuple> cks;
+    std::vector<eq_tuple> eks;
     Fss cmpkey_32, cmpkey_33;
     Convert *conv;
-    Compare(){};
-    void scmp_off(std::string st, P2Pchannel* p2pchnl, uint32_t len, int extend_len = 33){
+    Compare(std::string st, P2Pchannel* p2pchnl):st(st), p2pchnl(p2pchnl){};
+    
+    void eq_off(uint32_t len){
+        if(st == "aid"){
+            initializeClient(&cmpkey_32, 32, 2);
+            cmpkey_32_init = true;
+            send_fss_key(cmpkey_32, p2pchnl);
+            ServerKeyEq k0, k1;
+            uint32_t r_cmpe;
+            for(int i = 0; i < len; i ++){
+                r_cmpe = rand();
+                std::cout<<"r_cmpe"<<r_cmpe<<std::endl;
+                generateTreeEq(&cmpkey_32, &k0, &k1, r_cmpe, 1);
+                fourpc_share<uint32_t>(&r_cmpe, 1, st, p2pchnl);
+                send_eq_key(k0, cmpkey_32, "player1", p2pchnl);
+                send_eq_key(k1, cmpkey_32, "player3", p2pchnl);
+                free_key<ServerKeyEq>(k0);free_key<ServerKeyEq>(k1);
+            }
+        }else{
+            uint32_t r_cmpe;
+            
+
+            recv_fss_key(cmpkey_32, p2pchnl);
+            cmpkey_32_init = true;
+            for(int i = 0; i < len; i ++){
+                ServerKeyEq k_w;
+                fourpc_share<uint32_t>(&r_cmpe, 1, st, p2pchnl);
+                if(st == "player1" || st == "player3"){
+                    recv_eq_key(k_w, cmpkey_32, "aid", p2pchnl);
+                }
+                eq_tuple tmp = {k_w, r_cmpe};
+                eks.push_back(tmp);
+            }
+
+        }
+    }
+    
+    void scmp_off(uint32_t len, int extend_len = 33){
         conv = new Convert(st, p2pchnl);
+        isconv = true;
         uint32_t tmp32[2];
         uint64_t tmp33[2];
+        
         if(st == "aid"){
             /*gen key and send*/
             
             initializeClient(&cmpkey_32, 32, 2);
             initializeClient(&cmpkey_33, extend_len, 2);
+            cmpkey_32_init = true;
+            cmpkey_33_init = true;
             send_fss_key(cmpkey_32, p2pchnl);
             send_fss_key(cmpkey_33, p2pchnl);
             uint32_t a, r;
@@ -60,6 +107,8 @@ class Compare{
         }else{
             recv_fss_key(cmpkey_32, p2pchnl);
             recv_fss_key(cmpkey_33, p2pchnl);
+            cmpkey_32_init = true;
+            cmpkey_33_init = true;
             for(int i = 0; i < len; i++){
                 ServerKeyLt lt_k0, lt_k1;
                 recv_lt_key(lt_k0, cmpkey_32, "aid", p2pchnl);
@@ -79,7 +128,36 @@ class Compare{
         conv->fourpc_zeroshare<uint32_t>(len);
         p2pchnl->flush_all();
     }
-    void overflow(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
+    void equal(uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags){
+        if(st == "aid"){
+            
+            return;
+        }
+        uint32_t * delta = (uint32_t*) malloc(sizeof(uint32_t) * len);
+        uint32_t * tmp = (uint32_t*) malloc(sizeof(uint32_t) * len);
+        for(int i = 0; i < len; i++){
+            delta[i] = R[i] - A[i] + get<1>(eks[i]);
+        }
+        fourpc_reveal<uint32_t>(delta, tmp, len, {"player1","player3"}, st, p2pchnl);
+        if(st == "player1" || st == "player3"){
+            for(int i = 0; i < len; i++){
+                mpz_class ans = evaluateEq(&cmpkey_32, &get<0>(eks[i]), tmp[i]);
+                flags[i] = mpz_get_ui(ans.get_mpz_t());
+                free_key<ServerKeyEq>(get<0>(eks[i]));
+            }
+            if(st == "player1") p2pchnl->send_data_to("player0", flags, len*sizeof(uint32_t));
+            else{
+                for(int i = 0; i < len; i ++) flags[i] = - flags[i];
+                p2pchnl->send_data_to("player2", flags, len*sizeof(uint32_t));
+            } 
+        }else{
+            if(st == "player0") p2pchnl->recv_data_from("player1", flags, len*sizeof(uint32_t));
+            else p2pchnl->recv_data_from("player3", flags, len*sizeof(uint32_t));
+        }
+        free(delta);
+        free(tmp);
+    }
+    void overflow(uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
                         function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
         
         
@@ -155,7 +233,7 @@ class Compare{
             
     }
     /*split*/
-    void overflow_1(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
+    void overflow_1(uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
                         function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
         
         
@@ -175,7 +253,7 @@ class Compare{
         fourpc_reveal_1<uint64_t>(A_plus, A_plus, len, {"player1","player3"}, st, p2pchnl, 
                     [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<extend_len);});
     }
-    void overflow_2(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
+    void overflow_2(uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
                         function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
         
         
@@ -218,7 +296,7 @@ class Compare{
         free(A_hat);
         free(R_hat);  
     }
-    void overflow_3(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
+    void overflow_3(uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
                         function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
         if(st == "aid"){
             
@@ -251,15 +329,15 @@ class Compare{
         free(A_op_B);
             
     }
-    void overflow_end(std::string st, P2Pchannel* p2pchnl, uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
+    void overflow_end(uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
                         function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
 
         conv->fourpc_share_2_replicated_share_2<uint32_t>(flags, len);
     }
     ~Compare(){
-        delete conv;
-        free_fss_key(cmpkey_32);
-        free_fss_key(cmpkey_33);
+        if(isconv) delete conv;
+        if(cmpkey_32_init)free_fss_key(cmpkey_32);
+        if(cmpkey_33_init)free_fss_key(cmpkey_33);
     }
 };
 

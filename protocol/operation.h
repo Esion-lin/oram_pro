@@ -61,7 +61,7 @@ T mul_t(T a, T b, std::string st, P2Pchannel *p2pchnl, std::array<T, 3> triple =
 
 class Add_sub{
 private:
-    Compare *overflow = new Compare();
+    Compare *overflow;
     std::string st;
     P2Pchannel*p2pchnl;
     Convert *conv;
@@ -73,9 +73,11 @@ public:
     WORD* flag;
     WORD* res;
     Add_sub(WORD*data_a, WORD*data_b, WORD*res, WORD*flag, uint16_t len, std::string st,P2Pchannel* p2pchnl):
-                                    data_a(data_a),data_b(data_b),res(res),flag(flag),len(len),st(st),p2pchnl(p2pchnl){}
+                                    data_a(data_a),data_b(data_b),res(res),flag(flag),len(len),st(st),p2pchnl(p2pchnl){
+                                        overflow = new Compare(st, p2pchnl);
+                                    }
     void offline(){
-        overflow->scmp_off(st, p2pchnl, len);
+        overflow->scmp_off(len);
         conv = new Convert(st, p2pchnl);
         conv->fourpc_zeroshare<uint32_t>(len);
     }
@@ -84,19 +86,19 @@ public:
             res[i] = data_a[i] + data_b[i];
         }
         conv->fourpc_share_2_replicated_share_1(res, len);
-        overflow->overflow_1(st, p2pchnl, data_a, data_b, len,flag);
+        overflow->overflow_1( data_a, data_b, len,flag);
 
     }
     void round2(){
 
         conv->fourpc_share_2_replicated_share_2(res, len);
-        overflow->overflow_2(st, p2pchnl, data_a, data_b, len,flag);
+        overflow->overflow_2(data_a, data_b, len,flag);
     }
     void round3(){
-        overflow->overflow_3(st, p2pchnl, data_a, data_b, len,flag);
+        overflow->overflow_3( data_a, data_b, len,flag);
     }
     void roundend(){
-        overflow->overflow_end(st, p2pchnl, data_a, data_b, len,flag);
+        overflow->overflow_end( data_a, data_b, len,flag);
     }
     
 };
