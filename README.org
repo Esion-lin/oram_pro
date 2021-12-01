@@ -1,0 +1,14 @@
+#+title:TODO
+#+author:TYAN
+
+* preliminaries
+- +o_read+
+- +o_write+
+- +overflow+
+- +share conversion+
+* operator
+- +cmpe/cmpa/cmpae []+
+- +add/sub []+
+- mov
+- memery
+- jump

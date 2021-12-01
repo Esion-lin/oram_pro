@@ -61,27 +61,28 @@ public:
         ptr += len;
     }
     template <typename T>
-    void fourpc_share_2_replicated_share_1(T * data, uint16_t len){
-        if(!zero_flag) return;
-        if(len + ptr > zero_share_len) return;
+    void fourpc_share_2_replicated_share_1(T * data, uint16_t len, bool with_zero = true){
+        if(!zero_flag && with_zero) return;
+        if(len + ptr > zero_share_len && with_zero) return;
         if(st == "aid"){
             return;
         }
-        
+        if(with_zero)
         for(int i = 0; i < len; i ++){
             data[i] = data[i] + reinterpret_cast<T*>(zero_share)[ptr + i];
         }
         twopc_reveal_1<T>(data, data, len, st, p2pchnl);
     }
     template <typename T>
-    void fourpc_share_2_replicated_share_2(T * data, uint16_t len){
-        if(!zero_flag) return;
-        if(len + ptr > zero_share_len) return;
+    void fourpc_share_2_replicated_share_2(T * data, uint16_t len, bool with_zero = true){
+        if(!zero_flag&& with_zero) return;
+        if(len + ptr > zero_share_len && with_zero) return;
         if(st == "aid"){
             return;
         }
         T data2[len];
         twopc_reveal_2<T>(data2, data, len, st, p2pchnl);
+        if(with_zero)
         ptr += len;
     }
     ~Convert(){

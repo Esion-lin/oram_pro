@@ -229,7 +229,14 @@ void fourpc_reveal(R* data, R* data2, int len, std::set<std::string> sts, std::s
     }
     free(tmp);
 }
-
+template <typename R>
+void fourpc_reveal(R* data, int len, std::set<std::string> sts, std::string st, P2Pchannel *p2pchnl, 
+                                    function<R (R, R)>share_cb = [](R a, R b) -> R{return a + b;}){
+    R* data2 = (R*)malloc(len*sizeof(R));
+    memcpy(data2, data, len*sizeof(R));
+    fourpc_reveal<R>(data2, data, len, sts, st, p2pchnl, share_cb);
+    free(data2);
+}
 /*split fourpc_reveal*/
 
 template <typename R>

@@ -1,6 +1,7 @@
 #include "risc.h"
 #include "preliminaries.hpp"
 #include <iostream>
+#include "operation.h"
 Ins m2i(uint64_t data){
     Ins ans;
     ans.imme = (uint32_t)data;
@@ -101,7 +102,7 @@ Ins Mechine::load_ins(){
     conv->fourpc_zeroshare<uint32_t>(2);
 
     
-    Ins now_ins = m2i(ins_ram->read(myenv.pc, false, mul_ins_single, add_ins));
+    now_ins = m2i(ins_ram->read(myenv.pc, false, mul_ins_single, add_ins));
     if(st == "player1" || st == "player3"){
         now_ins = !now_ins;
     }
@@ -111,16 +112,71 @@ Ins Mechine::load_ins(){
     myenv.flag = arr[0]; 
     dm_ram->data.A = arr[1]; 
     /*take Ri, Rj, A*/
-    uint32_t betas[1<<OPT_LEN];
-    uint32_t Ri = m_ram->read(now_ins.i, false);
-    uint32_t Rj = m_ram->read(now_ins.j, false);
-    uint32_t A = dm_ram->read(now_ins.idic, false);
-    beta_ram->recover_list(now_ins.optr, betas, false);
-    std::cout<<"Ri "<<Ri<<" Rj "<<Rj<<" A "<<A<<std::endl;
-    for(int i = 0; i < OPT_SIZE; i++){
-        std::cout<<betas[i]<<" ";
+    Ri = m_ram->read(now_ins.i, false);
+    Rj = m_ram->read(now_ins.j, false);
+    A = dm_ram->read(now_ins.idic, false);
+    if(st == "player1" || st == "player3"){
+        Ri = -Ri;Rj = -Rj;A = -A;
     }
+    beta_ram->recover_list(now_ins.optr, betas, false);
+    // for(int i = 0; i < OPT_SIZE; i++){
+    //     std::cout<<betas[i]<<" ";
+    // }
     return now_ins;
+}
+void Mechine::run_op(){
+    run_op(now_ins, Ri, Rj, A);
+}
+void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
+
+	/*
+	 * run all instruct
+	 *get [res] and [flags]
+	 *use op select res' and flag' and owrite to R_i and flag
+	 *
+	 */
+    /*cmp*/
     
+    res[COMPE] = Ri;
+    Cmp_a_e_ae* eq_cmp = new Cmp_a_e_ae(&Rj, &A, &res[COMPE], &flags[COMPE], 1, 1, st, p2pchnl);
+    Cmp_a_e_ae* ae_cmp = new Cmp_a_e_ae(&Rj, &A, &res[COMPAE], &flags[COMPAE], 1, 2, st, p2pchnl);
+
+    /*add/sub*/
+    Add_sub * add_op = new Add_sub(&Rj, &A, &res[ADD], &flags[ADD], 1, 1, st, p2pchnl);
+    Add_sub * sub_op = new Add_sub(&Rj, &A, &res[SUB], &flags[SUB], 1, 2, st, p2pchnl);
     
+    std::cout<<Rj<<" "<<A<<std::endl;/*offline*/
+    eq_cmp->offline();
+    ae_cmp->offline();
+    add_op->offline();
+    sub_op->offline();
+    /*run*/
+    /*round-1*/
+    eq_cmp->round1();
+    ae_cmp->round1();
+    add_op->round1();
+    sub_op->round1();
+    /*round-2*/
+    eq_cmp->round2();
+    ae_cmp->round2();
+    add_op->round2();
+    sub_op->round2();
+    /*round-3*/
+    eq_cmp->round3();
+    ae_cmp->round3();
+    add_op->round3();
+    sub_op->round3();
+    /*round-end*/
+    eq_cmp->roundend();
+    ae_cmp->roundend();
+    add_op->roundend();
+    sub_op->roundend();
+    /*regulate*/
+	res[COMPAE] = res[COMPE];
+    res[COMPA] = res[COMPE];
+    flags[COMPA] = flags[COMPAE] - flags[COMPE];
+    delete eq_cmp;
+    delete ae_cmp;
+    delete add_op;
+    delete sub_op;
 }

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "preliminaries.hpp"
 #include "convert.h"
+#include <memory>
 #define M_LEN 32
 #define MEM_LEN 1024
 #define TAPE_LEN 32
@@ -43,7 +44,7 @@
 #define STORE   0x13
 #define LOAD    0x14
 #define READ    0x15
-#define ANSWER  0x16
+#define ANSWER  0x0
 template <typename T>
 T sub_mod(T a, T b, T mod){
     if(a < b){
@@ -51,6 +52,7 @@ T sub_mod(T a, T b, T mod){
     }
     return (a - b) % mod;
 }
+
 struct Ins
 {
     /* data */
@@ -144,8 +146,13 @@ private:
     Ram<uint32_t>* dm_ram;
     Ram<uint32_t>* beta_ram;
     bool ismyenv_init = false;
+    uint32_t res[OPT_SIZE];
+    uint32_t flags[OPT_SIZE];
+    
 public:
-
+    uint32_t Ri,Rj,A;
+    Ins now_ins;
+    uint32_t betas[1<<OPT_LEN];
     Mechine(std::string st, P2Pchannel *p2pchnl):st(st),p2pchnl(p2pchnl){
         conv = new Convert(st, p2pchnl);
     }
@@ -156,6 +163,25 @@ public:
     void load_env();                //from aid
     void load_env(std::string path);//from file
     Ins load_ins();
+	void run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A);
+    void run_op();
+    
+    /*for debug*/
+    void print_res_flag(){
+        uint32_t res_re[OPT_SIZE];
+        uint32_t flags_re[OPT_SIZE];
+        diag_reveal<uint32_t>(res, res_re, OPT_SIZE, st, p2pchnl);
+        diag_reveal<uint32_t>(flags, flags_re, OPT_SIZE, st, p2pchnl);
+        std::cout<<"--------------res list debug-----------\n";
+        for(int i = 0; i < OPT_SIZE; i++){
+            std::cout<<res_re[i]<<" ";
+        }
+        std::cout<<"\n--------------flag list debug-----------\n";
+        for(int i = 0; i < OPT_SIZE; i++){
+            std::cout<<flags_re[i]<<" ";
+        }
+        std::cout<<"\n--------------done-----------\n";
+    }
     ~Mechine(){
         delete ins_ram;
         delete m_ram;
