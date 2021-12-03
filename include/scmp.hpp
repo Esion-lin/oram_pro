@@ -38,6 +38,7 @@ class Compare{
     std::vector<scmp_tuple> cks;
     std::vector<eq_tuple> eks;
     std::vector<msb_tuple> mks;
+    std::vector<ServerKeyLt>mhelp;
     Fss cmpkey_32, cmpkey_33;
     Convert *conv;
     Compare(std::string st, P2Pchannel* p2pchnl):st(st), p2pchnl(p2pchnl){};
@@ -75,7 +76,11 @@ class Compare{
 
         }
     }
-    void msb_off(uint32_t len, int msb_len = 33){
+    void msb_off(uint32_t len, int msb_len = 33, bool if_reduce = false){
+        /*
+        if_reduce:
+        increase offline conmunacation and computation in return for diminishing online conmunacation round .
+        */
         if(st == "aid"){
             initializeClient(&cmpkey_33, msb_len, 2);
             cmpkey_33_init = true;
@@ -91,6 +96,12 @@ class Compare{
                 send_lt_key(lt_01, cmpkey_33, "player3", p2pchnl);
                 send_lt_key(lt_10, cmpkey_33, "player0", p2pchnl);
                 send_lt_key(lt_11, cmpkey_33, "player2", p2pchnl);
+                if(if_reduce){
+                    send_lt_key(lt_00, cmpkey_33, "player0", p2pchnl);
+                    send_lt_key(lt_01, cmpkey_33, "player2", p2pchnl);
+                    send_lt_key(lt_10, cmpkey_33, "player1", p2pchnl);
+                    send_lt_key(lt_11, cmpkey_33, "player3", p2pchnl);
+                }
                 fourpc_share<uint64_t>(&msb_delta0, 1, st, p2pchnl, 
                     [=](uint64_t a, uint64_t b)->uint64_t{ return (a + ((uint64_t)1<<msb_len) - b) % ((uint64_t)1<<msb_len);},
                     [=](uint64_t* data, uint16_t lens)->void{for(int i = 0; i < lens; i++)data[i] = rand();});
@@ -105,7 +116,11 @@ class Compare{
                 ServerKeyLt lt_k1;
                 uint64_t delta;
                 recv_lt_key(lt_k1, cmpkey_33, "aid", p2pchnl);
-                
+                if(if_reduce){
+                    ServerKeyLt lt_k2;
+                    recv_lt_key(lt_k2, cmpkey_33, "aid", p2pchnl);
+                    mhelp.push_back(lt_k2);
+                }
                 fourpc_share<uint64_t>(&delta, 1, st, p2pchnl); 
 
                 msb_tuple tmp = {lt_k1,  delta};
@@ -113,7 +128,7 @@ class Compare{
             }
         }
     }
-    void msb(uint32_t* R,  uint32_t len, uint32_t* flags, int msb_len = 33){
+    void msb(uint32_t* R,  uint32_t len, uint32_t* flags, int msb_len = 33, bool if_reduce = false){
         if(st == "aid"){
             
             return;
@@ -131,9 +146,21 @@ class Compare{
             if(st == "player1"|| st == "player3"){
                 flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[i]), tmp[i]);
                 if(st == "player3") flags[i] = -flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player1") temp = (uint32_t)1 - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
             }else{
                 flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[i]), tmp[i]);
                 if(st == "player0") flags[i] = (uint32_t)1 - flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player2") temp = - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
             }
             free_key<ServerKeyLt>(get<0>(mks[i]));
         }
@@ -146,7 +173,7 @@ class Compare{
         free(tmp);
         free(R_plus);
     }
-    void msb(uint64_t* R,  uint32_t len, uint32_t* flags, int msb_len = 33){
+    void msb(uint64_t* R,  uint32_t len, uint32_t* flags, int msb_len = 33, bool if_reduce = false){
         if(st == "aid"){
             
             return;
@@ -164,9 +191,21 @@ class Compare{
             if(st == "player1"|| st == "player3"){
                 flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[i]), tmp[i]);
                 if(st == "player3") flags[i] = -flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player1") temp = (uint32_t)1 - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
             }else{
                 flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[i]), tmp[i]);
                 if(st == "player0") flags[i] = (uint32_t)1 - flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player2") temp = - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
             }
             free_key<ServerKeyLt>(get<0>(mks[i]));
         }
@@ -174,7 +213,7 @@ class Compare{
             mks[i] = mks[len + i];
         }
         for(int i = 0; i <  len; i++){
-            cks.pop_back();
+            mks.pop_back();
         }
         free(tmp);
         free(R_plus);
@@ -207,7 +246,7 @@ class Compare{
         
     }
     /*split version*/
-    void msb_2(uint32_t* R,  uint32_t len, uint32_t* flags, uint64_t * tmp_ptr, int msb_len = 33, int bias = 0){
+    void msb_2(uint32_t* R,  uint32_t len, uint32_t* flags, uint64_t * tmp_ptr, int msb_len = 33, int bias = 0, bool if_reduce = false){
         if(st == "aid"){
             
             return;
@@ -220,16 +259,28 @@ class Compare{
             if(st == "player1"|| st == "player3"){
                 flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[bias + i]), tmp[i]);
                 if(st == "player3") flags[i] = -flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player1") temp = (uint32_t)1 - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
             }else{
                 flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[bias + i]), tmp[i]);
                 if(st == "player0") flags[i] = (uint32_t)1 - flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player2") temp = - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
             }
             free_key<ServerKeyLt>(get<0>(mks[bias + i]));
         }
         free(tmp);
 
     }
-    void msb_2(uint64_t* R,  uint32_t len, uint32_t* flags, uint64_t * tmp_ptr, int msb_len = 33, int bias = 0){
+    void msb_2(uint64_t* R,  uint32_t len, uint32_t* flags, uint64_t * tmp_ptr, int msb_len = 33, int bias = 0, bool if_reduce = false){
         if(st == "aid"){
             
             return;
@@ -242,9 +293,21 @@ class Compare{
             if(st == "player1"|| st == "player3"){
                 flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[bias + i]), tmp[i]);
                 if(st == "player3") flags[i] = -flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player1") temp = (uint32_t)1 - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
             }else{
                 flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[bias + i]), tmp[i]);
                 if(st == "player0") flags[i] = (uint32_t)1 - flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player2") temp = - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
             }
             free_key<ServerKeyLt>(get<0>(mks[bias + i]));
         }
@@ -327,7 +390,7 @@ class Compare{
         }
     }
     void overflow(uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
-                        function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+                        function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}, bool if_reduce = false){
             
         if(st == "aid"){
             
@@ -344,8 +407,9 @@ class Compare{
             A_hat[i] = share_cb(R_hat[i],A_hat[i]);
         }
         
-        msb(A_hat, len, flags, extend_len);
-        conv->fourpc_share_2_replicated_share<uint32_t>(flags, len);
+        msb(A_hat, len, flags, extend_len, if_reduce);
+        if(!if_reduce)
+            conv->fourpc_share_2_replicated_share<uint32_t>(flags, len);
 
     }
     void overflow_1(uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
@@ -389,12 +453,13 @@ class Compare{
 
     }
     void overflow_3(uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,
-                        function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);}){
+                        function<uint64_t (uint64_t, uint64_t)>share_cb = [](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<33);},bool if_reduce = false){
         if(st == "aid"){
             return;
         }
-        msb_2(tmps_64[1], len, flags, tmps_64[0], extend_len, 2*len);
-        conv->fourpc_share_2_replicated_share_1<uint32_t>(flags, len);
+        msb_2(tmps_64[1], len, flags, tmps_64[0], extend_len, 2*len, if_reduce);
+        if(!if_reduce)
+            conv->fourpc_share_2_replicated_share_1<uint32_t>(flags, len);
         free(tmps_64[1]);free(tmps_64[0]);
     }
     void overflow_end(uint32_t* R, uint32_t* A, uint32_t len, uint32_t* flags, int extend_len = 33,

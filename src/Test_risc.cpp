@@ -11,7 +11,7 @@ std::map<std::string, struct timeval> Timer::ptrs;
 std::string Timer::now_name;
 INITIALIZE_EASYLOGGINGPP
 int main(int argc, char** argv){
-    Ins testins = {2,3,1,1,12,12312};
+    Ins testins = {ADD,3,1,1,12,501};
     std::string st = argv[1];
     uint64_t tmp = i2m(testins), tmp2;
     Env testenv;
@@ -20,8 +20,9 @@ int main(int argc, char** argv){
     testenv.pc = 0;
     testenv.flag = 1;
     for(int i = 0; i < M_LEN; i++){
-        testenv.m[i] = i;
+        testenv.m[i] = 2*i;
     }
+    testenv.mem[501] = 2020;
 
 
     Config* cfg = new Config("./config.json");
@@ -32,7 +33,7 @@ int main(int argc, char** argv){
     std::cout<<"-----------------------test msb-------------------\n";
     Compare* cmp = new Compare(st, p2pchnl);
 
-    cmp->msb_off(4, 33);
+    cmp->msb_off(4, 33, true);
     /*4294967297, 8589946904, 1613827447, 6710252978*/
     /*1,        0,          0,          1*/
     uint64_t buffer[4];
@@ -40,24 +41,24 @@ int main(int argc, char** argv){
         uint32_t brr[4] = {1943807975,600768653,1433695274,72837182};
         
         cmp->msb_1(brr, 4,res,buffer);
-        cmp->msb_2(brr, 4,res,buffer);
+        cmp->msb_2(brr, 4,res,buffer, 33, 0, true);
     }else if(st == "player1"){
         
         uint32_t brr[4] = {914631543,1433695274,87876123,2420488357};
         cmp->msb_1(brr, 4,res,buffer);
-        cmp->msb_2(brr, 4,res,buffer);
+        cmp->msb_2(brr, 4,res,buffer, 33, 0, true);
     }
     else if(st == "player2"){
         uint32_t brr[4] = {1375911125,2420488357,10323231,4134994620};
         cmp->msb_1( brr, 4,res,buffer);
-        cmp->msb_2(brr, 4,res,buffer);
+        cmp->msb_2(brr, 4,res,buffer, 33, 0, true);
     }
     else if(st == "player3"){
         uint32_t brr[4] = {60616654,4134994620,81932819,81932819};
         cmp->msb_1(brr, 4,res,buffer);
-        cmp->msb_2(brr, 4,res,buffer);
+        cmp->msb_2(brr, 4,res,buffer, 33, 0, true);
     }
-    fourpc_reveal<uint32_t>(res, 4, {"player0"}, st, p2pchnl);
+    //fourpc_reveal<uint32_t>(res, 4, {"player0"}, st, p2pchnl);
     for(int i = 0; i < 4; i++){
         std::cout<<"+ res "<<res[i]<<std::endl;
     }
@@ -197,11 +198,11 @@ int main(int argc, char** argv){
     std::cout<<"-----------------------test load ins-------------------\n";
     Mechine * now_mechine;
     if(st == "aid"){
-        now_mechine = new Mechine(argv[1], p2pchnl, testenv);
+        now_mechine = new Mechine(argv[1], p2pchnl, testenv, 2);
         //std::cout<<m2i(load_T<uint64_t>(now_mechine->myenv.mem, 0))<<std::endl;
     }
     else{
-        now_mechine = new Mechine(argv[1], p2pchnl);
+        now_mechine = new Mechine(argv[1], p2pchnl, 2);
     }
     now_mechine->load_env();
     Timer::record("load_ins");
@@ -215,10 +216,11 @@ int main(int argc, char** argv){
     std::cout<<"-----------------------test run_op-------------------\n";
     Timer::record("run_ins");
     now_mechine->run_op();
-    now_mechine->print_res_flag();
+    now_mechine->ret_res();
+    now_mechine->print_res_flag(501);
     Timer::stop("run_ins");
     std::cout<<"-----------------------test done-------------------\n";
-
+    
     Timer::test_print();
     delete cfg;
     delete p2pchnl;

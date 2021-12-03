@@ -142,21 +142,25 @@ private:
     Env myenv;
     Convert* conv;
     Ram<uint64_t>* ins_ram;
+    Ram<uint32_t>* mem_ram;
     Ram<uint32_t>* m_ram;
     Ram<uint32_t>* dm_ram;
     Ram<uint32_t>* beta_ram;
     bool ismyenv_init = false;
     uint32_t res[OPT_SIZE];
     uint32_t flags[OPT_SIZE];
+    uint16_t ins_count;
     
+    uint32_t now_flag;
 public:
-    uint32_t Ri,Rj,A;
+    uint32_t now_res;
+    uint32_t Ri,Rj,A,Ri_rep;
     Ins now_ins;
     uint32_t betas[1<<OPT_LEN];
-    Mechine(std::string st, P2Pchannel *p2pchnl):st(st),p2pchnl(p2pchnl){
+    Mechine(std::string st, P2Pchannel *p2pchnl,uint16_t ins_count):st(st),p2pchnl(p2pchnl),ins_count(ins_count){
         conv = new Convert(st, p2pchnl);
     }
-    Mechine(std::string st, P2Pchannel *p2pchnl, Env myenv):st(st),p2pchnl(p2pchnl),myenv(myenv){
+    Mechine(std::string st, P2Pchannel *p2pchnl, Env myenv, uint16_t ins_count):st(st),p2pchnl(p2pchnl),myenv(myenv),ins_count(ins_count){
         conv = new Convert(st, p2pchnl);
         ismyenv_init = true;
     }
@@ -165,13 +169,20 @@ public:
     Ins load_ins();
 	void run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A);
     void run_op();
-    
+    void ret_res();
     /*for debug*/
-    void print_res_flag(){
+    void print_res_flag(uint indx = 0){
         uint32_t res_re[OPT_SIZE];
         uint32_t flags_re[OPT_SIZE];
+        uint32_t mem[MEM_LEN],m_rig[M_LEN];
+        uint32_t pc, ress, flagss;
         diag_reveal<uint32_t>(res, res_re, OPT_SIZE, st, p2pchnl);
         diag_reveal<uint32_t>(flags, flags_re, OPT_SIZE, st, p2pchnl);
+        diag_reveal<uint32_t>(myenv.mem, mem, MEM_LEN, st, p2pchnl);
+        diag_reveal<uint32_t>(myenv.m, m_rig, M_LEN, st, p2pchnl);
+        fourpc_reveal<uint32_t>(&myenv.pc, &pc, 1, st, p2pchnl);
+        fourpc_reveal<uint32_t>(&myenv.flag, &flagss, 1, st, p2pchnl);
+        fourpc_reveal<uint32_t>(&now_res, &ress, 1, st, p2pchnl);
         std::cout<<"--------------res list debug-----------\n";
         for(int i = 0; i < OPT_SIZE; i++){
             std::cout<<res_re[i]<<" ";
@@ -180,12 +191,19 @@ public:
         for(int i = 0; i < OPT_SIZE; i++){
             std::cout<<flags_re[i]<<" ";
         }
+        std::cout<<"\n--------------register list debug-----------\n";
+        for(int i = 0; i < M_LEN; i++){
+            std::cout<<m_rig[i]<<" ";
+        }
+        std::cout<<"\n--------------mem debug-----------\n";
+        std::cout<<mem[indx] << " pc: "<<pc<<" res: "<<ress<<" flag: "<<flagss;
         std::cout<<"\n--------------done-----------\n";
     }
     ~Mechine(){
         delete ins_ram;
         delete m_ram;
         delete dm_ram;
+        delete mem_ram;
         delete conv;
         delete beta_ram;
     }

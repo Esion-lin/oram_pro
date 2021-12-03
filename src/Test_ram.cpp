@@ -9,8 +9,8 @@ int main(int argc, char** argv){
     
     P2Pchannel* p2pchnl = new P2Pchannel(cfg->Pmap, argv[1]);
     std::string st = argv[1];
-    uint32_t arr[15] = {1,2,3,4,5,6,7,8,9,10,1,2,3,4,5};
-    
+    uint32_t arr[15] = {1,2,3,4,5,6,7,8,1010,10,1,2,3,4,5};
+    uint32_t anss[15];
     /**/
     std::cout<<"-----------------------test four pc share and reveal----------------\n";
     uint64_t brr[15] = {1,2,3,4,5,6,7,8,9,10,1,2,3,4,5};
@@ -53,12 +53,30 @@ int main(int argc, char** argv){
     
     std::cout<<"tmp is "<< tmp <<std::endl;
     if(st == "player1" || st == "player3") tmp = - tmp;
+    fourpc_reveal<uint32_t>(&tmp, anss, 1, st, p2pchnl);
+    std::cout<<anss[0]<<std::endl;
     conv->fourpc_share_2_replicated_share<uint32_t>(&tmp, 1);
     std::cout<<"tmp is "<< tmp <<std::endl;
     p2pchnl->flush_all();
-    test_ram->write(2, 6, tmp, false);
-    std::cout<<"write"<<test_ram->data_ptr[8]<<std::endl;
-    std::cout<<"write"<<test_ram->data_ptr[0]<<std::endl;
+    if(st == "player0"){
+    test_ram->write_1(960897063, 3260500231, 710412393, false, true);
+    test_ram->write_2(960897063, 3260500231, 710412393, false, true);
+    }
+    if(st == "player1"){
+    test_ram->write_1(4293491207, 1758907364, 710412393, false, true);
+    test_ram->write_2(4293491207, 1758907364, 710412393, false, true);
+    }
+    if(st == "player2"){
+    test_ram->write_1(2148152660, 1578586007, 3584556923, false, true);
+    test_ram->write_2(2148152660, 1578586007, 3584556923, false, true);
+    }
+    if(st == "player3"){
+    test_ram->write_1(1187393670, 1991940992, 3584556923, false, true);
+    test_ram->write_2(1187393670, 1991940992, 3584556923, false, true);
+    }
+    diag_reveal<uint32_t>(test_ram->data_ptr, anss, 15, st, p2pchnl);
+    for(int i =0 ; i< 15; i++)
+    std::cout<<"write "<<anss[i]<<std::endl;
     delete conv;
     delete cfg;
     delete p2pchnl;

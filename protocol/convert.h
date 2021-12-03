@@ -81,7 +81,8 @@ public:
             return;
         }
         T data2[len];
-        twopc_reveal_2<T>(data2, data, len, st, p2pchnl);
+        twopc_reveal_2<T>(data, data2, len, st, p2pchnl);
+        memcpy(data, data2, len*sizeof(T));
         if(with_zero)
         ptr += len;
     }
