@@ -21,6 +21,7 @@ using std::string;
 #include <unistd.h>
 
 #include "easylogging++.h"
+namespace net {
 const static int NETWORK_BUFFER_SIZE2 = 1024*32;
 const static int NETWORK_BUFFER_SIZE = 1024*1024;
 
@@ -247,26 +248,32 @@ class HighSpeedNetIO { public:
 		FSM = 1;
 	}
 };
+}
 class P2Pchannel{
 	private:
-	std::map<std::string, HighSpeedNetIO*> subio;
+	std::map<std::string, net::HighSpeedNetIO*> subio;
 	uint32_t send_len = 0;
+	
 	int FSM = 0;
+	protected:
+	
+	std::string st;
     public:
 	bool is_flush = false;
     P2Pchannel(std::map<std::string, Player> pmap, std::string user){
+		st = user;
 		/*根据当前用户构建通信通道*/
 		for(auto &v : pmap){
 			if(v.first == user) continue;
 			int port1 = 9000 + pmap[user].port*10 + v.second.port;
 			int port2 = 9000 + v.second.port*10 + pmap[user].port;
-			if(port1 > port2) subio[v.first] = new HighSpeedNetIO(nullptr, port1, port2);
-			else subio[v.first] = new HighSpeedNetIO(v.second.address.c_str(), port2, port1);
+			if(port1 > port2) subio[v.first] = new net::HighSpeedNetIO(nullptr, port1, port2);
+			else subio[v.first] = new net::HighSpeedNetIO(v.second.address.c_str(), port2, port1);
 
 		}
 		LOG(INFO) << "P2Pchannel construction done"<<std::endl;
 	}
-	void send_data_to(std::string player, void* data, int len){
+	void send_data_to(std::string player, const void* data, int len){
 		//if (FSM == 1) {
 			
 		//}
