@@ -2,6 +2,7 @@
 #include "preliminaries.hpp"
 #include <iostream>
 #include "operation.h"
+#include "gc_op.h"
 Ins m2i(uint64_t data){
     Ins ans;
     ans.imme = (uint32_t)data;
@@ -85,14 +86,16 @@ void Mechine::load_env(){
     fourpc_share<WORD>(&(myenv.pc), 1, st, p2pchnl);
     
     fourpc_share<WORD>(&(myenv.flag), 1, st, p2pchnl);
-    twopc_share<WORD>(&(myenv.rc), 2, st, p2pchnl);
+    fourpc_share<WORD>(&(myenv.rc0), 4, st, p2pchnl);
     ins_ram = new Ram<uint64_t>(reinterpret_cast<uint64_t*>(myenv.mem), MEM_LEN/2, st, p2pchnl);
     mem_ram = new Ram<uint32_t>(myenv.mem, MEM_LEN, st, p2pchnl);
+    tape1_ram = new Ram<WORD>(myenv.tape1, TAPE_LEN, st, p2pchnl);
+    tape2_ram = new Ram<WORD>(myenv.tape2, TAPE_LEN, st, p2pchnl);
     m_ram = new Ram<WORD>(myenv.m, M_LEN, st, p2pchnl);
     dupliM<uint32_t> dup = {M_LEN, 0, myenv.m};
     dm_ram = new Ram<WORD>(dup, 2* M_LEN, st, p2pchnl);
     beta_ram = new Ram<WORD>(nullptr, 1<<OPT_LEN, st, p2pchnl);
-    ins_ram->init();m_ram->init();dm_ram->init();beta_ram->init();mem_ram->init();
+    ins_ram->init();m_ram->init();dm_ram->init();beta_ram->init();mem_ram->init();tape1_ram->init();tape2_ram->init();
 }            
 void Mechine::load_env(std::string path){}//from file
 
@@ -141,6 +144,10 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
 	 *
 	 */
     /*cmp*/
+    Pratical_OT* ot = new Pratical_OT(p2pchnl, st);
+    Bitwise * bitwise = new Bitwise(ot, st, p2pchnl);
+    std::vector<std::string> gcfiles = {"../cir/and_32.txt", "../cir/or_32.txt", "../cir/xor_32.txt", "../cir/not_32.txt", "../cir/left_shift.txt", "../cir/right_shift.txt"};
+    
     if(st == "player0") myenv.pc += 2;
     res[CMOV] = Ri;
     res[STORE] = Ri;
@@ -153,11 +160,13 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     flags[CNJMP] = myenv.flag;
     Cmp_a_e_ae* eq_cmp = new Cmp_a_e_ae(&Rj, &A, &res[COMPE], &flags[COMPE], 1, 1, st, p2pchnl);
     Cmp_a_e_ae* ae_cmp = new Cmp_a_e_ae(&Rj, &A, &res[COMPAE], &flags[COMPAE], 1, 2, st, p2pchnl);
-
+    Read * read_op = new Read(A, &myenv.rc0, &res[READ], &flags[READ], st, p2pchnl, tape1_ram, tape2_ram);
+    WORD read_eq[2];
+    Cmp_a_e_ae*read_flag = new Cmp_a_e_ae(&myenv.rc0, &myenv.num0, read_eq, read_eq, 2, 1, st, p2pchnl);
     /*add/sub*/
     Add_sub * add_op = new Add_sub(&Rj, &A, &res[ADD], &flags[ADD], 1, 1, st, p2pchnl);
     Add_sub * sub_op = new Add_sub(&Rj, &A, &res[SUB], &flags[SUB], 1, 2, st, p2pchnl);
-    
+    Mul *mul_op = new Mul(Rj, A, &res[MULL], &flags[MULL], st, p2pchnl);
     /* mov & cmov*/
     Mov *mov_op = new Mov(&Rj, &A, &res[MOV], &flags[MOV], 1, 1, st, p2pchnl);
     Mov *cmov_op = new Mov(&Rj, &A, &res[CMOV], &flags[CMOV], 1, 2, st, p2pchnl);
@@ -169,20 +178,33 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     Jump_op * cjump_op = new Jump_op(Rj, A, &res[CJMP], &flags[CJMP], 2,st, p2pchnl);
     Jump_op * cnjump_op = new Jump_op(Rj, A, &res[CNJMP], &flags[CNJMP], 3,st, p2pchnl);
     /*offline*/
+    read_flag->offline();
     eq_cmp->offline();
     ae_cmp->offline();
     add_op->offline();
     sub_op->offline();
+    mul_op->offline();
     mov_op->offline();
     cmov_op->offline();
     load_op->offline();
     store_op->offline();
+    read_op->offline();
+
+    /*for test*/
+    uint32_t new_value[2],old_value[2] = {Rj, A};
+    if(st == "player1") p2pchnl->send_data_to("player0", old_value, 2*sizeof(uint32_t));
+    else if(st == "player3") p2pchnl->send_data_to("player2", old_value, 2*sizeof(uint32_t));
+    else if(st == "player0") p2pchnl->recv_data_from("player1", old_value, 2*sizeof(uint32_t));
+    else if(st == "player2") p2pchnl->recv_data_from("player3", old_value, 2*sizeof(uint32_t));
+    bitwise->to_Y("player0", "player2", Rj+old_value[0], A+old_value[1], 32);
     /*run*/
     /*round-1*/
+    read_flag->round1();
     eq_cmp->round1();
     ae_cmp->round1();
     add_op->round1();
     sub_op->round1();
+    mul_op->round1();
     mov_op->round1();
     cmov_op->round1();
     load_op->round1();
@@ -190,11 +212,17 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     jump_op->round1(&(myenv.pc));
     cjump_op->round1(&(myenv.pc));
     cnjump_op->round1(&(myenv.pc));
+    if(st == "player0")
+        bitwise->runs("player0", "player2", gcfiles, 32);
+    
+    read_op->round1();
     /*round-2*/
+    read_flag->round2();
     eq_cmp->round2();
     ae_cmp->round2();
     add_op->round2();
     sub_op->round2();
+    mul_op->round2();
     mov_op->round2();
     cmov_op->round2();
     load_op->round2();
@@ -202,11 +230,19 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     jump_op->round2(&(myenv.pc), betas[JMP]);
     cjump_op->round2(&(myenv.pc), betas[CJMP]);
     cnjump_op->round2(&(myenv.pc), betas[CNJMP]);
+    if(st == "player2")
+        bitwise->runs("player0", "player2", gcfiles, 32);
+    if(st == "player0"){
+        bitwise->to_As("player0", "player2",32);
+    }
+    read_op->round2();
     /*round-3*/
+    read_flag->round3();
     eq_cmp->round3();
     ae_cmp->round3();
     add_op->round3();
     sub_op->round3();
+    mul_op->round3();
     mov_op->round3();
     cmov_op->round3();
     load_op->round3();
@@ -214,13 +250,58 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     jump_op->round3(&(myenv.pc), betas[JMP]);
     cjump_op->round3(&(myenv.pc), betas[CJMP]);
     cnjump_op->round3(&(myenv.pc), betas[CNJMP]);
-    myenv.pc = jump_op->j_pc + cjump_op->j_pc + cnjump_op->j_pc;
+    myenv.pc += jump_op->j_pc + cjump_op->j_pc + cnjump_op->j_pc;
+    if(st == "player0"){
+        p2pchnl->send_data_to("player1", &bitwise->r, sizeof(uint64_t));
+        p2pchnl->send_data_to("player1", &bitwise->r_flag, sizeof(uint64_t));
+        for(int i = AND; i <= SHR; i++){
+            res[i] = bitwise->r;
+            flags[i] = bitwise->r_flag;
+        }    
+    }
+    if(st == "player2"){ 
+        bitwise->to_As("player0", "player2",32);
+        uint32_t r_arr[6], flag_arr[6];
+        for(int i = 0; i < 6; i++){
+            r_arr[i] = bitwise->r_set[i];
+            flag_arr[i] = bitwise->rflag_set[i];
+        } 
+        p2pchnl->send_data_to("player3", r_arr, sizeof(uint32_t)* 6);
+        p2pchnl->send_data_to("player3", flag_arr, sizeof(uint32_t)* 6);
+        for(int i = AND; i <= SHR; i++) {
+            res[i] = r_arr[i - AND];
+            flags[i] = flag_arr[i - AND];
+        }
+    }
+    read_op->round3(betas[READ],read_eq);
     /*round-end*/
+    read_flag->roundend();
     eq_cmp->roundend();
     ae_cmp->roundend();
     add_op->roundend();
     sub_op->roundend();
+    mul_op->roundend();
     store_op->roundend(load_op->res, betas[STORE]);
+    if(st == "player1"){
+        uint64_t r,r_flag;
+        p2pchnl->recv_data_from("player0", &r, sizeof(uint64_t));
+        p2pchnl->recv_data_from("player0", &r_flag, sizeof(uint64_t));
+        for(int i = AND; i <= SHR; i++){ 
+            res[i] = r;
+            flags[i] = r_flag;
+        }
+    }if(st == "player3"){
+        uint32_t r_arr[6], flag_arr[6];
+        p2pchnl->recv_data_from("player2", &r_arr, sizeof(uint32_t)* 6);
+        p2pchnl->recv_data_from("player2", &flag_arr, sizeof(uint32_t)* 6);
+        for(int i = AND; i <= SHR; i++){
+            res[i] = r_arr[i - AND];
+            flags[i] = flag_arr[i - AND];
+            
+        } 
+        
+    }
+    read_op->roundend(read_eq);
     /*regulate*/
     Ri_rep = res[STORE];
     res[COMPE] = res[STORE];
@@ -241,6 +322,11 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     delete jump_op;
     delete cjump_op;
     delete cnjump_op;
+    delete bitwise;
+    delete ot;
+    delete read_op;
+    delete read_flag;
+    delete mul_op;
 }
 void Mechine::ret_res(){
     now_res = 0;

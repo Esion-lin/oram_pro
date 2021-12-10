@@ -37,7 +37,7 @@ add_library(risc protocol/src/risc.cpp
 add_library(gc protocol/src/gc_op.cpp)
 target_link_libraries(gc ${OPENSSL_LIBRARIES} emp-tool emp empot)
 target_link_libraries(fss gmp gmpxx ${OPENSSL_LIBRARIES})
-target_link_libraries(risc fss)
+target_link_libraries(risc fss gc)
 add_executable(test src/Test_ram.cpp)
 add_executable(test_gc src/Test_gc.cpp)
 #add_executable(ORAM_TEST src/oram_rw_test.cpp)

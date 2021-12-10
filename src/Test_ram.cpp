@@ -27,21 +27,6 @@ int main(int argc, char** argv){
         std::cout<<ele<<" ";
     }
     std::cout<<"-----------------------test done----------------\n";
-    std::cout<<"-----------------------test mul----------------\n";
-    uint32_t arr2[15] = {1,2,3,4,5,6,7,8,9,10,1,2,3,4,5};
-    fourpc_share<uint32_t>(arr2, 15, st, p2pchnl);
-    
-    uint32_t mul_tmp = arr2[0];
-    uint32_t mul_rev;
-    fourpc_reveal<uint32_t>(&mul_tmp, &mul_rev, 1, {"player0","player1","player2","player3"}, st, p2pchnl);
-    std::cout<<mul_rev<<" ";
-    for(int i = 1; i < 15; i++){
-        
-        mul_tmp = mul_t<uint32_t>(mul_tmp, arr2[i], st, p2pchnl);
-        fourpc_reveal<uint32_t>(&mul_tmp, &mul_rev, 1, {"player0","player1","player2","player3"}, st, p2pchnl);
-        std::cout<<mul_rev<<" ";
-    }
-    std::cout<<"\n-----------------------test done----------------\n";
 
     Ram<uint32_t>* test_ram = new Ram<uint32_t>(arr, 15, argv[1], p2pchnl);
     Convert* conv = new Convert(argv[1], p2pchnl);

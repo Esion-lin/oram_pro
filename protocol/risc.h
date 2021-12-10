@@ -20,7 +20,7 @@
 
 #define AND     0x01
 #define OR      0x02
-#define XOR     0x03
+#define EXOR    0x03
 #define NOT     0x04
 #define SHL     0x05
 #define SHR     0x06
@@ -110,7 +110,7 @@ struct Env{
     WORD mem[MEM_LEN];
     WORD tape1[TAPE_LEN];
     WORD tape2[TAPE_LEN];
-    WORD rc,num;  
+    WORD rc0, rc1 ,num0, num1;  
 };
 
 
@@ -146,6 +146,9 @@ private:
     Ram<uint32_t>* m_ram;
     Ram<uint32_t>* dm_ram;
     Ram<uint32_t>* beta_ram;
+    Ram<uint32_t>* tape1_ram;
+    Ram<uint32_t>* tape2_ram;
+    
     bool ismyenv_init = false;
     uint32_t res[OPT_SIZE];
     uint32_t flags[OPT_SIZE];
@@ -175,7 +178,7 @@ public:
         uint32_t res_re[OPT_SIZE];
         uint32_t flags_re[OPT_SIZE];
         uint32_t mem[MEM_LEN],m_rig[M_LEN];
-        uint32_t pc, ress, flagss;
+        uint32_t pc, ress, flagss, rc[2];
         diag_reveal<uint32_t>(res, res_re, OPT_SIZE, st, p2pchnl);
         diag_reveal<uint32_t>(flags, flags_re, OPT_SIZE, st, p2pchnl);
         diag_reveal<uint32_t>(myenv.mem, mem, MEM_LEN, st, p2pchnl);
@@ -183,6 +186,7 @@ public:
         fourpc_reveal<uint32_t>(&myenv.pc, &pc, 1, st, p2pchnl);
         fourpc_reveal<uint32_t>(&myenv.flag, &flagss, 1, st, p2pchnl);
         fourpc_reveal<uint32_t>(&now_res, &ress, 1, st, p2pchnl);
+        fourpc_reveal<uint32_t>(&myenv.rc0, rc, 2, st, p2pchnl);
         std::cout<<"--------------res list debug-----------\n";
         for(int i = 0; i < OPT_SIZE; i++){
             std::cout<<res_re[i]<<" ";
@@ -196,7 +200,7 @@ public:
             std::cout<<m_rig[i]<<" ";
         }
         std::cout<<"\n--------------mem debug-----------\n";
-        std::cout<<mem[indx] << " pc: "<<pc<<" res: "<<ress<<" flag: "<<flagss;
+        std::cout<<"mem:"<<mem[indx] << " pc: "<<pc<<" res: "<<ress<<" flag: "<<flagss<<" rc:"<<rc[0]<<" "<<rc[1];
         std::cout<<"\n--------------done-----------\n";
     }
     ~Mechine(){
@@ -206,6 +210,8 @@ public:
         delete mem_ram;
         delete conv;
         delete beta_ram;
+        delete tape1_ram;
+        delete tape2_ram;
     }
 };
 

@@ -19,19 +19,23 @@ int main(int argc, const char** argv) {
     // std::cout<<a<<" "<<b<<std::endl;
     // std::cout<<c<<std::endl;
     // d = c;
-    uint64_t R, A;
+    uint32_t R, A;
     if(st == "player0"){
-        R = 23123;
+        R = 1;
         A = 2;
     }
-    if(st == "player1"){
-        R = 1231;
-        A = 1;
+    if(st == "player2"){
+        R = 0;
+        A = 0;
     }
-    bitwise->to_Y("player0", "player1", R, A, 32);
-    bitwise->run("player0", "player1","../cir/adder64.txt",32);
-    bitwise->to_A("player0", "player1",32);
+    std::vector<std::string> files = {"../cir/left_shift.txt", "../cir/right_shift.txt", "../cir/and_32.txt", "../cir/or_32.txt", "../cir/xor_32.txt", "../cir/not_32.txt", "../cir/zero_check.txt"};
+    bitwise->to_Y("player0", "player2", R, A, 32);
+    bitwise->runs("player0", "player2",files,32);
+    bitwise->to_As("player0", "player2",32);
     std::cout<<bitwise->r<<std::endl;
+    for(auto & dat : bitwise->r_set){
+        std::cout<<dat<<" ";
+    }
     // delete[] c;
     delete bitwise;
     delete cfg;

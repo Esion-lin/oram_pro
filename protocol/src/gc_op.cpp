@@ -116,19 +116,19 @@ void to_binary(T a, bool* bin_a, int lens){
     }
 
 }
-void Bitwise::run_with_R_A(uint64_t R, uint64_t A, std::string file, std::string sender, std::string recver){
+void Bitwise::run_with_R_A(uint64_t R, uint64_t A, std::string file, std::string sender, std::string recver, uint16_t lens){
     if(st != sender && st != recver) return;
-    block* a0 = new block[64];
-    block* b0 = new block[64];
-    bool *select_a = new bool[64];
-    block* c = new block[64];
+    block* a0 = new block[lens];
+    block* b0 = new block[lens];
+    bool *select_a = new bool[lens];
+    block* c = new block[lens];
     /*convert R/A to select_a/select_b*/
-    to_binary<uint64_t>(R, select_a, 64);
+    to_binary<uint64_t>(R, select_a, lens);
     BristolFormat cf(file.c_str());
     if (st == recver) {
         HalfGateEva<ED_P2Pch>::circ_exec = new HalfGateEva<ED_P2Pch>(static_cast<ED_P2Pch*>(p2pchnl));
-        ot->recv(a0, select_a, 64, recver, sender);
-        static_cast<ED_P2Pch*>(p2pchnl)->recv_block(b0, 64);
+        ot->recv(a0, select_a, lens, recver, sender);
+        static_cast<ED_P2Pch*>(p2pchnl)->recv_block(b0, lens);
         cf.compute(c, b0, a0);
         
         delete HalfGateEva<ED_P2Pch>::circ_exec;
@@ -136,10 +136,10 @@ void Bitwise::run_with_R_A(uint64_t R, uint64_t A, std::string file, std::string
     }else{
         HalfGateGen<ED_P2Pch>::circ_exec = new HalfGateGen<ED_P2Pch>(static_cast<ED_P2Pch*>(p2pchnl));
         delta = dynamic_cast<HalfGateGen<ED_P2Pch>*> (HalfGateGen<ED_P2Pch>::circ_exec) -> delta;
-        prg.random_block(a0, 64);
-        prg.random_block(b0, 64); 
-        block a1[64],b1[64],bs[64];
-        for(int i = 0; i < 64; i ++) {
+        prg.random_block(a0, lens);
+        prg.random_block(b0, lens); 
+        block a1[lens],b1[lens],bs[lens];
+        for(int i = 0; i < lens; i ++) {
             a1[i] = a0[i] ^ delta;
             b1[i] = b0[i] ^ delta;
             if(select_a[i]){
@@ -148,8 +148,8 @@ void Bitwise::run_with_R_A(uint64_t R, uint64_t A, std::string file, std::string
                 bs[i] = b0[i];
             }
         }
-        ot->send(a0, a1, 64, sender, recver);
-        static_cast<ED_P2Pch*>(p2pchnl)->send_block(bs, 64);
+        ot->send(a0, a1, lens, sender, recver);
+        static_cast<ED_P2Pch*>(p2pchnl)->send_block(bs, lens);
         cf.compute(c, b0, a0);
         delete HalfGateGen<ED_P2Pch>::circ_exec;
         std::cout<<c[0]<<std::endl;
@@ -158,11 +158,11 @@ void Bitwise::run_with_R_A(uint64_t R, uint64_t A, std::string file, std::string
     delete[] select_a;delete[] c;
 }
 void Bitwise::to_Y(std::string sender, std::string recver, uint64_t R, uint64_t A, int lens=64){
-    
-    bool select_a[lens],select_b[lens],select_r[lens];
+    bool select_a[lens],select_b[lens],select_r[lens], select_flag[lens];
     to_binary<uint64_t>(R, select_a, lens);
     to_binary<uint64_t>(A, select_b, lens);
     to_binary<uint64_t>(r, select_r, lens);
+    to_binary<uint64_t>(r_flag, select_flag, lens);
     if (st == sender) {
         HalfGateGen<ED_P2Pch>::circ_exec = new HalfGateGen<ED_P2Pch>(static_cast<ED_P2Pch*>(p2pchnl));
         /**/
@@ -171,7 +171,8 @@ void Bitwise::to_Y(std::string sender, std::string recver, uint64_t R, uint64_t 
         prg.random_block(A0, lens);
         prg.random_block(A1, lens); 
         prg.random_block(R_plus, lens);
-        block R0_1[lens],R1_1[lens],A0_1[lens],A1_1[lens],R_plus1[lens],Rs[lens], As[lens],R_pluss[lens];
+        prg.random_block(Flag_plus, lens);
+        block R0_1[lens],R1_1[lens],A0_1[lens],A1_1[lens],R_plus1[lens],Rs[lens], As[lens],R_pluss[lens], Flag_pluss[lens];
         delta = dynamic_cast<HalfGateGen<ED_P2Pch>*> (HalfGateGen<ED_P2Pch>::circ_exec) -> delta;
         for(int i = 0; i < lens; i ++) {
             R0_1[i] = R0[i] ^ delta;
@@ -194,6 +195,11 @@ void Bitwise::to_Y(std::string sender, std::string recver, uint64_t R, uint64_t 
             }else{
                 R_pluss[i] = R_plus[i];
             }
+            if(select_flag[i]){
+                Flag_pluss[i] = Flag_plus[i] ^ delta; 
+            }else{
+                Flag_pluss[i] = Flag_plus[i];
+            }
         }
         block tmps[lens * 2],tmps2[lens*2];
         memcpy(tmps, R0, lens*sizeof(block));
@@ -204,6 +210,7 @@ void Bitwise::to_Y(std::string sender, std::string recver, uint64_t R, uint64_t 
         static_cast<ED_P2Pch*>(p2pchnl)->send_block(Rs, lens);
         static_cast<ED_P2Pch*>(p2pchnl)->send_block(As, lens);
         static_cast<ED_P2Pch*>(p2pchnl)->send_block(R_pluss, lens);
+        static_cast<ED_P2Pch*>(p2pchnl)->send_block(Flag_pluss, lens);
     }
     else if(st == recver){
         HalfGateEva<ED_P2Pch>::circ_exec = new HalfGateEva<ED_P2Pch>(static_cast<ED_P2Pch*>(p2pchnl));
@@ -217,20 +224,54 @@ void Bitwise::to_Y(std::string sender, std::string recver, uint64_t R, uint64_t 
         static_cast<ED_P2Pch*>(p2pchnl)->recv_block(R1, lens);
         static_cast<ED_P2Pch*>(p2pchnl)->recv_block(A1, lens);
         static_cast<ED_P2Pch*>(p2pchnl)->recv_block(R_plus, lens);
+        static_cast<ED_P2Pch*>(p2pchnl)->recv_block(Flag_plus, lens);
     }
     is_y = true;
 }
 void Bitwise::run(std::string sender, std::string recver, std::string file, uint16_t lens=64){
     if(st != sender && st != recver) return;
     block R[lens],A[lens],tmp[lens];
-    BristolFormat cf("../cir/adder64.txt");
+    BristolFormat cf("../cir/add_32.txt");
     cf.compute(R, R0, R1);
-    for(int i = 0; i < lens; i++)
     cf.compute(A, A0, A1);
     BristolFormat cf2(file.c_str());
     cf2.compute(tmp, R, A);
-    BristolFormat cf3("../cir/sub64.txt");
+    BristolFormat cf3("../cir/sub_32.txt");
     cf3.compute(res, tmp, R_plus);
+
+}
+void Bitwise::runs(std::string sender, std::string recver, std::vector<std::string> files, uint16_t lens=64){
+    if(st != sender && st != recver) return;
+    block R[lens],A[lens],tmp[lens] = {0},tmp_flag[lens] = {0};
+    
+    BristolFormat cf("../cir/add_32.txt");
+    cf.compute(R, R0, R1);
+    cf.compute(A, A0, A1);
+
+    for(auto& file:files){
+        BristolFormat cf2(file.c_str());
+        cf2.compute(tmp, R, A);
+        
+        if(file == "../cir/left_shift.txt"){
+            /*msb*/
+            tmp_flag[0] = tmp[lens-1];
+        }else if(file == "../cir/right_shift.txt"){
+            /*msb*/
+            tmp_flag[0] = tmp[0];
+        }else{
+            /*zero check*/
+            BristolFormat zcheck("../cir/zero_check.txt");
+            zcheck.compute(tmp_flag, tmp, tmp);
+        }
+        BristolFormat cf3("../cir/sub_32.txt");
+        block *tmp2 = (block*) malloc(sizeof(block)*lens);
+        block *tmp3 = (block*) malloc(sizeof(block)*lens);
+        cf3.compute(tmp2, tmp, R_plus);
+        cf3.compute(tmp3, tmp_flag, Flag_plus);
+        res_set.push_back(tmp2);
+        flagres_set.push_back(tmp3);
+    }
+    
 
 }
 void Bitwise::to_A(std::string sender, std::string recver, uint16_t lens=64){
@@ -242,11 +283,51 @@ void Bitwise::to_A(std::string sender, std::string recver, uint16_t lens=64){
         static_cast<ED_P2Pch*>(p2pchnl)->recv_block(tmpd, lens);
         r = 0;
         for(int i = lens - 1; i >= 0; i--){
-            std::cout<<res[i]<< " "<< tmpd[i]<<std::endl; 
             if(tmpd[i][1] == res[i][1])
                 r = r*2;
             else
                 r = r*2 + 1; 
+        }
+    }
+}
+void Bitwise::to_As(std::string sender, std::string recver, uint16_t lens=64){
+    if(st == sender){
+        for(auto & ele : res_set){
+            static_cast<ED_P2Pch*>(p2pchnl)->send_block(ele, lens);
+            free(ele);
+        }
+        for(auto & ele : flagres_set){
+            static_cast<ED_P2Pch*>(p2pchnl)->send_block(ele, lens);
+            free(ele);
+        }
+        
+    }
+    if(st == recver){
+        for(auto & ele : res_set){
+            block tmpd[lens];
+            static_cast<ED_P2Pch*>(p2pchnl)->recv_block(tmpd, lens);
+            r = 0;
+            for(int i = lens - 1; i >= 0; i--){
+                if(tmpd[i][1] == ele[i][1])
+                    r = r*2;
+                else
+                    r = r*2 + 1; 
+            }
+            free(ele);
+            r_set.push_back(r);
+        }
+        for(auto & ele : flagres_set){
+            block tmpd[lens];
+            static_cast<ED_P2Pch*>(p2pchnl)->recv_block(tmpd, lens);
+            r = 0;
+            for(int i = lens - 1; i >= 0; i--){
+                if(tmpd[i][1] == ele[i][1])
+                    r = r*2;
+                else
+                    r = r*2 + 1; 
+            }
+            free(ele);
+            rflag_set.push_back(r);
         }
     }
 }
