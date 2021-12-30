@@ -80,6 +80,10 @@ void Mechine::load_env(){
     replicated_share<WORD>(myenv.m, M_LEN, st, p2pchnl);
     replicated_share<INS_TYPE>(reinterpret_cast<INS_TYPE*>(myenv.mem), ins_count, st, p2pchnl, sub_ins, rand_ins);
     replicated_share<WORD>(&myenv.mem[ins_count*2], MEM_LEN - 2*ins_count, st, p2pchnl);
+    // for(int i = 0; i < 4; i++){
+    //     Ins test_ins = m2i(load_T<uint64_t>(myenv.mem, i));
+    //     std::cout<<test_ins<<std::endl;
+    // }
     replicated_share<WORD>(myenv.tape1, TAPE_LEN, st, p2pchnl);
     replicated_share<WORD>(myenv.tape2, TAPE_LEN, st, p2pchnl);
     /*due to fetch data, limit pc in [0, MEM_LEN]*/
@@ -88,7 +92,7 @@ void Mechine::load_env(){
     fourpc_share<WORD>(&(myenv.flag), 1, st, p2pchnl);
     fourpc_share<WORD>(&(myenv.rc0), 4, st, p2pchnl);
     ins_ram = new Ram<uint64_t>(reinterpret_cast<uint64_t*>(myenv.mem), MEM_LEN/2, st, p2pchnl);
-    mem_ram = new Ram<uint32_t>(myenv.mem, MEM_LEN, st, p2pchnl);
+    mem_ram = new Ram<uint32_t>(&myenv.mem[MEM_LEN/2], MEM_LEN/2, st, p2pchnl);
     tape1_ram = new Ram<WORD>(myenv.tape1, TAPE_LEN, st, p2pchnl);
     tape2_ram = new Ram<WORD>(myenv.tape2, TAPE_LEN, st, p2pchnl);
     m_ram = new Ram<WORD>(myenv.m, M_LEN, st, p2pchnl);
@@ -96,6 +100,10 @@ void Mechine::load_env(){
     dm_ram = new Ram<WORD>(dup, 2* M_LEN, st, p2pchnl);
     beta_ram = new Ram<WORD>(nullptr, 1<<OPT_LEN, st, p2pchnl);
     ins_ram->init();m_ram->init();dm_ram->init();beta_ram->init();mem_ram->init();tape1_ram->init();tape2_ram->init();
+    // for(int i = 0; i < 4; i++){
+    //     Ins test_ins = m2i(load_T<uint64_t>(myenv.mem, i));
+    //     std::cout<<test_ins<<std::endl;
+    // }
 }            
 void Mechine::load_env(std::string path){}//from file
 
@@ -106,9 +114,12 @@ Ins Mechine::load_ins(){
     dm_ram->prepare_read(1);
     beta_ram->prepare_read(1);
     conv->fourpc_zeroshare<uint32_t>(2);
-
+    // Ins test_ins = m2i(load_T<uint64_t>(myenv.mem, 3));
+    count_num ++;
     
     now_ins = m2i(ins_ram->read(myenv.pc, false, mul_ins_single, add_ins));
+    // std::cout<<test_ins<<std::endl;
+    // std::cout<<now_ins<<std::endl;
     if(st == "player1" || st == "player3"){
         now_ins = !now_ins;
     }
@@ -130,6 +141,10 @@ Ins Mechine::load_ins(){
             
             betas[i] = -betas[i];
         }
+    uint32_t stop;
+    twopc_reveal<uint32_t>(&betas[0], &stop, 1, st, p2pchnl);
+    if(stop == 1) done = true;
+
     return now_ins;
 }
 void Mechine::run_op(){
@@ -148,7 +163,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     Bitwise * bitwise = new Bitwise(ot, st, p2pchnl);
     std::vector<std::string> gcfiles = {"../cir/and_32.txt", "../cir/or_32.txt", "../cir/xor_32.txt", "../cir/not_32.txt", "../cir/left_shift.txt", "../cir/right_shift.txt"};
     
-    if(st == "player0") myenv.pc += 2;
+    if(st == "player0") myenv.pc += 1;
     res[CMOV] = Ri;
     res[STORE] = Ri;
     
@@ -188,7 +203,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     cmov_op->offline();
     load_op->offline();
     store_op->offline();
-    read_op->offline();
+    read_op->offline(betas[READ]);
 
     /*for test*/
     uint32_t new_value[2],old_value[2] = {Rj, A};
@@ -273,7 +288,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
             flags[i] = flag_arr[i - AND];
         }
     }
-    read_op->round3(betas[READ],read_eq);
+    read_op->round3(read_eq);
     /*round-end*/
     read_flag->roundend();
     eq_cmp->roundend();

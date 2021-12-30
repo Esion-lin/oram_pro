@@ -79,6 +79,9 @@ class Bitwise{
     void runs(std::string sender, std::string recver, std::vector<std::string> files, uint16_t lens);
     void to_A(std::string sender, std::string recver, uint16_t lens);
     void to_As(std::string sender, std::string recver, uint16_t lens);
+    ~Bitwise(){
+        delete emp::CircuitExecution::circ_exec;
+    }
 };
 
 

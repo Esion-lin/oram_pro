@@ -260,6 +260,7 @@ class P2Pchannel{
 	std::string st;
     public:
 	bool is_flush = false;
+	static P2Pchannel* mychnl;
     P2Pchannel(std::map<std::string, Player> pmap, std::string user){
 		st = user;
 		/*根据当前用户构建通信通道*/

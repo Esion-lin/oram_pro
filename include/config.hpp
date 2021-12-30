@@ -19,7 +19,7 @@ class Config{
     public:
     std::map<std::string, Player> Pmap;
     Player aid;
-    std::string current_player;
+    static Config * myconfig;
     Config(std::string path){
         config_json = load_json(path);
         json sub_conf = config_json["config"];
@@ -29,8 +29,18 @@ class Config{
         }
         //aid = {config_json["myplayer"]["host"].get<std::string>(), config_json["myplayer"]["port"].get<int>()};
     }
+    void set_player(std::string st){
+        current_player = st;
+    }
+    std::string get_player(){
+        return current_player;
+    }
+    bool check(std::string st){
+        return st == current_player;
+    }
     private:
     json config_json;
+    std::string current_player;
     
 
 };

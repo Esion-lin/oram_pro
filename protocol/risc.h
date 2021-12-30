@@ -140,6 +140,7 @@ private:
     P2Pchannel *p2pchnl;
     std::string st;
     Env myenv;
+    
     Convert* conv;
     Ram<uint64_t>* ins_ram;
     Ram<uint32_t>* mem_ram;
@@ -153,9 +154,10 @@ private:
     uint32_t res[OPT_SIZE];
     uint32_t flags[OPT_SIZE];
     uint16_t ins_count;
-    
+    uint16_t count_num = 0;
     uint32_t now_flag;
 public:
+    bool done = false;
     uint32_t now_res;
     uint32_t Ri,Rj,A,Ri_rep;
     Ins now_ins;
@@ -177,12 +179,14 @@ public:
     void print_res_flag(uint indx = 0){
         uint32_t res_re[OPT_SIZE];
         uint32_t flags_re[OPT_SIZE];
+        uint32_t betas_re[OPT_SIZE];
         uint32_t mem[MEM_LEN],m_rig[M_LEN];
         uint32_t pc, ress, flagss, rc[2];
         diag_reveal<uint32_t>(res, res_re, OPT_SIZE, st, p2pchnl);
         diag_reveal<uint32_t>(flags, flags_re, OPT_SIZE, st, p2pchnl);
         diag_reveal<uint32_t>(myenv.mem, mem, MEM_LEN, st, p2pchnl);
         diag_reveal<uint32_t>(myenv.m, m_rig, M_LEN, st, p2pchnl);
+        twopc_reveal<uint32_t>(betas, betas_re, OPT_SIZE, st, p2pchnl);
         fourpc_reveal<uint32_t>(&myenv.pc, &pc, 1, st, p2pchnl);
         fourpc_reveal<uint32_t>(&myenv.flag, &flagss, 1, st, p2pchnl);
         fourpc_reveal<uint32_t>(&now_res, &ress, 1, st, p2pchnl);
@@ -190,6 +194,10 @@ public:
         std::cout<<"--------------res list debug-----------\n";
         for(int i = 0; i < OPT_SIZE; i++){
             std::cout<<res_re[i]<<" ";
+        }
+        std::cout<<"\n--------------betas list debug-----------\n";
+        for(int i = 0; i < OPT_SIZE; i++){
+            std::cout<<betas_re[i]<<" ";
         }
         std::cout<<"\n--------------flag list debug-----------\n";
         for(int i = 0; i < OPT_SIZE; i++){
@@ -200,7 +208,8 @@ public:
             std::cout<<m_rig[i]<<" ";
         }
         std::cout<<"\n--------------mem debug-----------\n";
-        std::cout<<"mem:"<<mem[indx] << " pc: "<<pc<<" res: "<<ress<<" flag: "<<flagss<<" rc:"<<rc[0]<<" "<<rc[1];
+        for(int i = 0; i < indx; i++) std::cout<<"mem:"<<myenv.mem[i]<< " ";
+        std::cout<<"\n pc: "<<pc<<" res: "<<ress<<" flag: "<<flagss<<" rc:"<<rc[0]<<" "<<rc[1];
         std::cout<<"\n--------------done-----------\n";
     }
     ~Mechine(){

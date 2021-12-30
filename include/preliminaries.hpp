@@ -489,7 +489,6 @@ public:
                     p2pchnl->send_data_to("player1",&v0,sizeof(uint32_t));
                     p2pchnl->send_data_to("player2",&v1,sizeof(uint32_t));
                     p2pchnl->send_data_to("player3",&v1,sizeof(uint32_t));
-                    std::cout<<"v "<<v<<std::endl;
                 }
                 free_key<ServerKeyEq>(k0);
                 free_key<ServerKeyEq>(k1);
@@ -533,7 +532,7 @@ public:
             if(st == "player0"||st == "player1") delta_r = delta2[0];
             else delta_r = delta2[1];
         }
-        while(delta_r > 2*data_len) delta_r+=data_len;
+       while(delta_r > (1<<31)) delta_r+=data_len;
         delta_r = delta_r % data_len;
         for(uint32_t i = 0; i < data_len; i++){
             mpz_class ans = evaluateEq(&faccess, &read_triples[read_times].first, sub(i, delta_r, data_len));
@@ -766,7 +765,6 @@ public:
         T deltaV_plus = target - org - get<4>(write_triples[write_times]);
         T deltaV;
         diag_reveal_2<T>(&deltaV_plus, &deltaV, 1, st, p2pchnl);
-        std::cout<<deltaV<<std::endl;
         if(add_target){
             T new_deltaV;
             twopc_reveal_2<T>(&deltaV, &new_deltaV, 1, st, p2pchnl);
@@ -774,7 +772,6 @@ public:
             latt_reveal_2<T>(&deltaV, &new_deltaV, 1, st, p2pchnl);
             deltaV = new_deltaV;
         }
-        std::cout<<deltaV<<std::endl;
         uint32_t delta_r[2];
         if(is_rep){
             uint32_t delta[2] = {sub(idex, get<2>(write_triples[write_times]), data_len), sub(idex, get<3>(write_triples[write_times]), data_len)};
@@ -806,7 +803,6 @@ public:
         for(uint32_t i = 0; i < data_len; i++){
             mpz_class ans = evaluateEq(&faccess, &get<0>(write_triples[write_times]), sub(i, delta_r[0], data_len));
             uint32_t tmp = mpz_get_ui(ans.get_mpz_t());
-            if(i == 500) std::cout<<i<<" debug 1 "<<tmp<<std::endl;
             if(st == "player0" || st == "player1") data_ptr[i] = data_ptr[i] + tmp;
             else data_ptr[i] = data_ptr[i] - tmp;
             ans = evaluateEq(&faccess, &get<1>(write_triples[write_times]), sub(i, delta_r[1], data_len));

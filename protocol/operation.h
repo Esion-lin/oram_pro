@@ -138,7 +138,8 @@ class Mul{
     */
     std::string st;
     P2Pchannel*p2pchnl;
-    Compare* eq_zero;
+    Compare* gt_fp;
+    uint64_t buf_gt;
     Compare* msb_ans;
     uint64_t buf_ans;
     Compare* msb_33;
@@ -162,7 +163,7 @@ public:
         msb_34 = new Compare(st, p2pchnl);
         msb_33_diag = new Compare(st, p2pchnl);
         msb_34_diag = new Compare(st, p2pchnl);
-        eq_zero = new Compare(st, p2pchnl);
+        gt_fp = new Compare(st, p2pchnl);
     }
     Mul(std::string st,P2Pchannel* p2pchnl):st(st), p2pchnl(p2pchnl){
         msb_ans = new Compare(st, p2pchnl);
@@ -170,10 +171,10 @@ public:
         msb_34 = new Compare(st, p2pchnl);
         msb_33_diag = new Compare(st, p2pchnl);
         msb_34_diag = new Compare(st, p2pchnl);
-        eq_zero = new Compare(st, p2pchnl);
+        gt_fp = new Compare(st, p2pchnl);
     }
     ~Mul(){
-        delete eq_zero;
+        delete gt_fp;
         delete msb_ans;
         delete msb_33;
         delete msb_34;
@@ -186,7 +187,7 @@ public:
         msb_33_diag->msb_diag_off(1, 33, true);
         msb_34_diag->msb_diag_off(1, 34, true);
         msb_ans->msb_off(1, 33, true);
-        eq_zero->eq_off(1, true);
+        gt_fp->IC_OFF(1, 0, (uint64_t)1<<32, true);
     }
     void round1(){
         /*
@@ -206,7 +207,7 @@ public:
     void round2(){
         uint64_t R_64 = (uint64_t)data_a, R64;
         uint64_t A_64 = (uint64_t)data_b, A64;
-        uint32_t mR33,mR34,mA33,mA34;
+        uint32_t mR33,mR34,mA33,mA34,mgt;
         twopc_reveal_2<uint64_t>(&R_64, &R64, 1, st, p2pchnl);
         diag_reveal_2<uint64_t>(&A_64, &A64, 1, st, p2pchnl);
         msb_33->msb_2<uint32_t>(&data_a, 1, &mR33, &buf_33, 33, 0, true);
@@ -217,27 +218,26 @@ public:
         A64 = A64 - ((uint64_t)mA33<<32) - ((uint64_t)mA34<<33);
         total_mul = R64* A64;
         twopc_reveal_1<uint64_t>(&total_mul, &total_mul, 1, st, p2pchnl);
+        gt_fp->IC_1(&total_mul, 1,  &mgt, &buf_gt);
 
     }
     void round3(){
         uint64_t total_rep;
         twopc_reveal_2<uint64_t>(&total_mul, &total_rep, 1, st, p2pchnl);
+        gt_fp->IC_2(&total_mul, 1,  &flag[0], &buf_gt, true);
         res[0] = total_rep, res[1] = (total_rep >> 32);
         uint32_t ms_bit, zero = 0, zero_ans;
         msb_ans->msb_1<uint32_t>(&res[0], 1, &ms_bit, &buf_ans, 33, 0, true);
 
-        eq_zero->equal_1(&res[1], &zero, 1, &zero_ans, true);
+        
     }
     void roundend(){
-        uint32_t ms_bit, zero = 0, zero_ans;
+        uint32_t ms_bit;
         msb_ans->msb_2<uint32_t>(&res[0], 1, &ms_bit, &buf_ans, 33, 0, true);
-        eq_zero->equal_2(&res[1], &zero, 1, &zero_ans, true);
-        if(st == "player0" || st == "player1") zero_ans = 1 - zero_ans;
-        if(st == "player2" || st == "player3") zero_ans = - zero_ans;
+        
         
         res[1] += ms_bit;
-        flag[0] = ms_bit + zero_ans;
-        flag[1] = ms_bit + zero_ans;
+        flag[1] = flag[0];
         
     }
 };
@@ -492,6 +492,7 @@ class Read{
     Convert *conv;
     Ram<WORD>* tape1_ram,* tape2_ram;
     WORD x0,delta,A_tmp, rc_up[2];
+    uint32_t beta_rep;
 public:
     WORD data_a;
     WORD *rc_ptr;
@@ -507,10 +508,14 @@ public:
     ~Read(){
         delete conv;
     }
-    void offline(){
+    void offline(uint32_t beta){
         tape1_ram->prepare_read(1);
         tape2_ram->prepare_read(1);
         conv->fourpc_zeroshare<uint32_t>(1);
+        /*TODO: additively sharing -> replicated sharinf*/
+        twopc_reveal<uint32_t>(&beta, &beta_rep, 1, st, p2pchnl);
+        if(st == "player0" || st == "player1") beta_rep/=2;
+        else (beta_rep + 1)/2;
     }
     void round1(){
         tape1_ram->read_1(rc_ptr[0], false);
@@ -527,19 +532,23 @@ public:
         twopc_reveal_1<uint32_t>(&delta, &delta, 1, st, p2pchnl);
         diag_reveal_1<uint32_t>(&data_a, &data_a, 1, st, p2pchnl);
     }
-    void round3(uint32_t beta, WORD* read_flag){
+    void round3(WORD* read_flag){
         /*(1 - A)*read[0] + A*read[1]*/
         WORD tmp1;
+        /*
+        tmp1: x1 - x0
+        A_tmp: A
+        */
         twopc_reveal_2<uint32_t>(&delta, &tmp1, 1, st, p2pchnl);
         diag_reveal_2<uint32_t>(&data_a, &A_tmp, 1, st, p2pchnl);
         if(st == "player0" || st == "player2"){
-            rc_up[0] = (1 - A_tmp) * beta;
-            rc_up[1] = A_tmp * beta;
+            rc_up[0] = (1 - A_tmp) * beta_rep;
+            rc_up[1] = A_tmp * beta_rep;
             flag[0] = (1 - A_tmp) * read_flag[0] + A_tmp * read_flag[1];
             
         }else{
-            rc_up[0] = (- A_tmp) * beta;
-            rc_up[1] = A_tmp * beta;
+            rc_up[0] = (- A_tmp) * beta_rep;
+            rc_up[1] = A_tmp * beta_rep;
             flag[0] = (- A_tmp) * read_flag[0] + A_tmp * read_flag[1];
         }
         res[0] = x0 + tmp1*A_tmp;
@@ -553,6 +562,7 @@ public:
         diag_reveal_2<uint32_t>(rc_up, rc_rep, 2, st, p2pchnl);
         twopc_reveal_2<uint32_t>(flag, &new_flag, 1, st, p2pchnl);
         flag[0] = new_flag;
+        
         if(st == "player0" || st == "player1"){
             /*
             rc0 = rc0 + (1 - A) * B[read] * (1 - flag)
@@ -560,6 +570,7 @@ public:
             */
             rc_ptr[0] += (1 - read_flag[0]) * rc_rep[0];
             rc_ptr[1] += (1 - read_flag[1]) * rc_rep[1];
+            
         }else{
             rc_ptr[0] += (- read_flag[0]) * rc_rep[0];
             rc_ptr[1] += (- read_flag[1]) * rc_rep[1];

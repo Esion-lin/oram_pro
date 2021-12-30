@@ -111,34 +111,38 @@ int main(int argc, const char** argv) {
     Config* cfg = new Config("./config.json");
     P2Pchannel* p2pchnl = new P2Pchannel(cfg->Pmap, st);
     if(ele_size == 1){
-        while(itr --){
+        
             Convert* conv = new Convert(st, p2pchnl);
             conv->fourpc_zeroshare<uint32_t>(1);
 
 
-            uint32_t ram_data[ele_lens];
+            uint32_t* ram_data = (uint32_t*)malloc(sizeof(uint32_t)*ele_lens);
             Ram<uint32_t>* test_ram = new Ram<uint32_t>(ram_data, ele_lens, st, p2pchnl);
             test_ram->init();
             Timer::record("read_offline");
-            test_ram->prepare_read(1);
+            test_ram->prepare_read(itr);
+            p2pchnl->flush_all();
             Timer::stop("read_offline");
             Timer::record("write_offline");
-            test_ram->prepare_write(1);
+            test_ram->prepare_write(itr);
+            p2pchnl->flush_all();
             Timer::stop("write_offline");
 
-            
-            Timer::record("read_online");
-            uint32_t tmp = test_ram->read(2, false);
-            Timer::stop("read_online");
-            conv->fourpc_share_2_replicated_share<uint32_t>(&tmp, 1);
-            Timer::record("write_online");
-            test_ram->write(2, 6, tmp, false);
-            Timer::stop("write_online");
+            while(itr -- ){
+                Timer::record("read_online");
+                uint32_t tmp = test_ram->read(2, false);
+                Timer::stop("read_online");
+                conv->fourpc_share_2_replicated_share<uint32_t>(&tmp, 1);
+                Timer::record("write_online");
+                test_ram->write(2, 6, tmp, false);
+                Timer::stop("write_online");
+            }
+            free(ram_data);
             delete conv;
             delete test_ram;
-        }
+        
     }else{
-        while(itr --){
+        
             Convert* conv = new Convert(st, p2pchnl);
             conv->fourpc_zeroshare<block_t>(1);
 
@@ -147,24 +151,27 @@ int main(int argc, const char** argv) {
             Ram<block_t>* test_ram = new Ram<block_t>(ram_data, ele_lens, st, p2pchnl);
             test_ram->init();
             Timer::record("read_offline");
-            test_ram->prepare_read(1);
+            test_ram->prepare_read(itr);
+            p2pchnl->flush_all();
             Timer::stop("read_offline");
             Timer::record("write_offline");
-            test_ram->prepare_write(1);
+            test_ram->prepare_write(itr);
+            p2pchnl->flush_all();
             Timer::stop("write_offline");
 
-            
-            Timer::record("read_online");
-            block_t tmp = test_ram->read(2, false);
-            block_t target;
-            Timer::stop("read_online");
-            conv->fourpc_share_2_replicated_share<block_t>(&tmp, 1);
-            Timer::record("write_online");
-            test_ram->write(2, target, tmp, false);
-            Timer::stop("write_online");
+            while(itr -- ){
+                Timer::record("read_online");
+                block_t tmp = test_ram->read(2, false);
+                block_t target;
+                Timer::stop("read_online");
+                conv->fourpc_share_2_replicated_share<block_t>(&tmp, 1);
+                Timer::record("write_online");
+                test_ram->write(2, target, tmp, false);
+                Timer::stop("write_online");
+            }
             delete conv;
             delete test_ram;
-        }
+        
     }
     Timer::test_print();
     delete cfg;

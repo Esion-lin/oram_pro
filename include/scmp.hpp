@@ -88,6 +88,61 @@ class Compare{
 
         }
     }
+    void IC_OFF(uint32_t len, uint64_t p, uint64_t q, bool if_reduce = false){
+        /*[p,q)*/
+        if(st == "aid"){
+            if(!cmpkey_33_init){
+                initializeClient(&cmpkey_33, 64, 2);
+                cmpkey_33_init = true;
+                send_fss_key(cmpkey_33, p2pchnl);
+            }
+            
+            uint64_t msb_delta0,msb_delta1, r_in;
+            ServerKeyLt lt_00, lt_01, lt_10, lt_11;
+            for(int i = 0; i < len; i++){
+                r_in = rand();
+                
+                msb_delta0 = r_in + p;
+                msb_delta1 = r_in + q;
+                generateTreeLt(&cmpkey_33, &lt_00, &lt_01, msb_delta0, 1);
+                generateTreeLt(&cmpkey_33, &lt_10, &lt_11, msb_delta1, 1);
+                send_lt_key(lt_00, cmpkey_33, "player1", p2pchnl);
+                send_lt_key(lt_01, cmpkey_33, "player3", p2pchnl);
+                send_lt_key(lt_10, cmpkey_33, "player0", p2pchnl);
+                send_lt_key(lt_11, cmpkey_33, "player2", p2pchnl);
+                if(if_reduce){
+                    send_lt_key(lt_00, cmpkey_33, "player0", p2pchnl);
+                    send_lt_key(lt_01, cmpkey_33, "player2", p2pchnl);
+                    send_lt_key(lt_10, cmpkey_33, "player1", p2pchnl);
+                    send_lt_key(lt_11, cmpkey_33, "player3", p2pchnl);
+                }
+                fourpc_share<uint64_t>(&r_in, 1, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a - b);},
+                    [=](uint64_t* data, uint16_t lens)->void{for(int i = 0; i < lens; i++)data[i] = rand();});
+                ServerKeyLt keyarr[4] = {lt_00, lt_01, lt_10, lt_11};
+                free_keys<ServerKeyLt>(keyarr, 4);
+            }
+        }else{
+            if(!cmpkey_33_init){
+                recv_fss_key(cmpkey_33, p2pchnl);
+                cmpkey_33_init = true;
+            }
+            for(int i = 0; i < len; i++){
+                ServerKeyLt lt_k1;
+                uint64_t delta;
+                recv_lt_key(lt_k1, cmpkey_33, "aid", p2pchnl);
+                if(if_reduce){
+                    ServerKeyLt lt_k2;
+                    recv_lt_key(lt_k2, cmpkey_33, "aid", p2pchnl);
+                    mhelp.push_back(lt_k2);
+                }
+                fourpc_share<uint64_t>(&delta, 1, st, p2pchnl); 
+
+                msb_tuple tmp = {lt_k1,  delta};
+                mks.push_back(tmp);
+            }
+        }
+    }   
     void msb_off(uint32_t len, int msb_len = 33, bool if_reduce = false){
         /*
         if_reduce:
@@ -215,7 +270,6 @@ class Compare{
                 generateTreeLt(&cmpkey_33, &lt_00, &lt_01, gamma, 1);
                 uint64_t q_pl = (q + 1) % mod, alpa_p = (p + r_in) % mod, alpa_q = (q + r_in) % mod, alpa_qpl = (q + 1 + r_in) % mod;
                 uint64_t z = (alpa_p>alpa_q) - (alpa_p > p) + (alpa_qpl > q_pl) + (alpa_q == mod - 1);
-                std::cout<<"z "<<z<<std::endl;
                 uint64_t z0 = rand() % mod, z1 = (z + mod - z0) % mod;
                 uint64_t r0 = rand() % mod, r1 = (r_in + mod - r0) % mod;
                 send_lt_key(lt_00, cmpkey_33, "player0", p2pchnl);
@@ -266,6 +320,107 @@ class Compare{
             }
              
         }
+
+    }
+    template<typename T>
+    void IC(T* R,  uint32_t len, uint32_t* flags, bool if_reduce = false){
+        if(st == "aid"){
+            
+            return;
+        }
+        uint64_t* tmp = (uint64_t*) malloc(sizeof(uint64_t) * len);
+        uint64_t* R_plus = (uint64_t*) malloc(sizeof(uint64_t) * len);
+        for(int i = 0; i < len; i++){
+            R_plus[i] = (uint64_t)R[i] + get<1>(mks[i]);
+            
+        }
+        fourpc_reveal<uint64_t>(R_plus, tmp, len, {"player0","player1","player2","player3"}, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b);});
+        
+        for(int i = 0; i < len; i ++){
+            if(st == "player1"|| st == "player3"){
+                flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[i]), tmp[i]);
+                if(st == "player3") flags[i] = -flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player1") temp = (uint32_t)1 - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
+            }else{
+                flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[i]), tmp[i]);
+                if(st == "player0") flags[i] = (uint32_t)1 - flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player2") temp = - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
+            }
+            free_key<ServerKeyLt>(get<0>(mks[i]));
+        }
+        for(int i = 0; i < mks.size() - len; i++){
+            mks[i] = mks[len + i];
+        }
+        for(int i = 0; i <  len; i++){
+            mks.pop_back();
+        }
+        free(tmp);
+        free(R_plus);
+    }
+    /*split version*/
+    template<typename T>
+    void IC_1(T* R,  uint32_t len, uint32_t* flags, uint64_t * tmp_ptr, bool is_rep = false){
+        if(st == "aid"){
+            
+            return;
+        }
+        for(int i = 0; i < len; i++){
+            tmp_ptr[i] = ( (uint64_t)R[i] + get<1>(mks[i]) );
+            if(is_rep){
+                if(st == "player1" || st == "player3")
+                    tmp_ptr[i] = ((uint64_t)get<1>(mks[i]) );
+            }
+            
+        }
+        fourpc_reveal_1<uint64_t>(tmp_ptr, tmp_ptr, len, {"player0","player1","player2","player3"}, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b);});
+        
+    }
+    
+    template<typename T>
+    void IC_2(T* R,  uint32_t len, uint32_t* flags, uint64_t * tmp_ptr, bool if_reduce = false){
+        if(st == "aid"){
+            
+            return;
+        }
+        uint64_t *tmp = (uint64_t*)malloc(len * sizeof(uint64_t)); 
+        fourpc_reveal_2<uint64_t>(tmp_ptr, tmp, len, {"player0","player1","player2","player3"}, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b);});
+        for(int i = 0; i < len; i ++){
+            
+            if(st == "player1"|| st == "player3"){
+                flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[i]), tmp[i]);
+                if(st == "player3") flags[i] = -flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player1") temp = (uint32_t)1 - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
+            }else{
+                flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[i]), tmp[i]);
+                if(st == "player0") flags[i] = (uint32_t)1 - flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[i], tmp[i]);
+                    if(st == "player2") temp = - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[i]);
+                }
+            }
+            free_key<ServerKeyLt>(get<0>(mks[i]));
+        }
+        free(tmp);
 
     }
     template<typename T>
@@ -541,7 +696,6 @@ class Compare{
         }
         
         msb<uint64_t>(A_hat, len, flags, extend_len, if_reduce);
-        std::cout<<"flags "<<flags[0]<<" "<<flags[1]<<std::endl;
         if(!if_reduce)
             conv->fourpc_share_2_replicated_share<uint32_t>(flags, len);
 
@@ -634,7 +788,6 @@ class Compare{
             test_R = R_rep[i] % ((uint64_t)1<<extend_len) - ((uint64_t)R_plus[i]<<32);
             test_A = A_rep[i] % ((uint64_t)1<<extend_len) - ((uint64_t)A_plus[i]<<32);
             tmps_64[1][i] = share_cb(R_hat[i],A_hat[i]);
-            std::cout<<"mul "<<tmps_64[1][i]<<" "<<test_R << " "<< test_A << " "<< test_R*test_A<<std::endl;
         }
         msb_1<uint64_t>(tmps_64[1], len, flags, tmps_64[0], extend_len, 2*len);
         free(R_plus);free(A_plus);
