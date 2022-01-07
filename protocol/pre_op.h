@@ -16,7 +16,6 @@ void shared_select(const T* data0, const T* data1, bool select_bit, T* res, uint
         z[i] = data0[i] ^ data1[i];
         z_r[i] = z[i] ^ r[i];
     }
-    std::cout<<"\n";
     /*2,3*/
     if(Config::myconfig->check(tarro.first)){
         ot->send(reinterpret_cast<emp::block*>(r), reinterpret_cast<emp::block*>(z_r), times_t/16, tarro.first, tarro.second);

@@ -17,7 +17,7 @@
 using namespace std;
 
 const int initPRFLen = 4;
-
+using AES_KEY_FSS = AES_KEY;
 struct Fss {
     // store keys in fixedBlocks
     AES_KEY* aes_keys;

@@ -16,6 +16,7 @@ AES_KEY* prf(unsigned char* out, unsigned char* key, uint64_t in_size, AES_KEY* 
     if (num_keys_required > numKeys) {
         free(temp_keys);
         temp_keys = (AES_KEY*) malloc(sizeof(AES_KEY)*num_keys_required); 
+        //#pragma omp parallel for
         for (int i = 0; i < num_keys_required; i++) {
             unsigned char rand_bytes[16];
             if (!RAND_bytes(rand_bytes, 16)) {
@@ -29,6 +30,7 @@ AES_KEY* prf(unsigned char* out, unsigned char* key, uint64_t in_size, AES_KEY* 
         }
         free(temp_keys);
     }
+    //#pragma omp parallel for
     for (int i = 0; i < num_keys_required; i++) {
 #ifndef AESNI
         AES_encrypt(key, out + (i*16), &temp_keys[i]);

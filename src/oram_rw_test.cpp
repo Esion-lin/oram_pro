@@ -104,7 +104,8 @@ int main(int argc, const char** argv) {
         ele_lens = parser.get<int>("elements_lens");
     }
     std::string st = parser.get<std::string>("role");
-
+    // ele_lens/=128;
+    // std::cout<<"ele lens "<<ele_lens;
     /*
     start oram
     */
@@ -113,10 +114,14 @@ int main(int argc, const char** argv) {
     if(ele_size == 1){
         
             Convert* conv = new Convert(st, p2pchnl);
-            conv->fourpc_zeroshare<uint32_t>(1);
+            conv->fourpc_zeroshare<uint32_t>(itr);
 
 
             uint32_t* ram_data = (uint32_t*)malloc(sizeof(uint32_t)*ele_lens);
+            
+            for(int i = 0; i < ele_lens; i++) ram_data[i] = i;
+            Timer::record("total time");
+            replicated_share<uint32_t>(ram_data, ele_lens, st, p2pchnl);
             Ram<uint32_t>* test_ram = new Ram<uint32_t>(ram_data, ele_lens, st, p2pchnl);
             test_ram->init();
             Timer::record("read_offline");
@@ -130,13 +135,17 @@ int main(int argc, const char** argv) {
 
             while(itr -- ){
                 Timer::record("read_online");
-                uint32_t tmp = test_ram->read(2, false);
+                uint32_t tmp = test_ram->read(itr, false);
                 Timer::stop("read_online");
+                if(st == "player1" || st == "player3") tmp = - tmp;
+                
                 conv->fourpc_share_2_replicated_share<uint32_t>(&tmp, 1);
                 Timer::record("write_online");
-                test_ram->write(2, 6, tmp, false);
+                test_ram->write(itr, 8, tmp, false);
                 Timer::stop("write_online");
+                p2pchnl->flush_all();
             }
+            Timer::stop("total time");
             free(ram_data);
             delete conv;
             delete test_ram;
@@ -144,7 +153,7 @@ int main(int argc, const char** argv) {
     }else{
         
             Convert* conv = new Convert(st, p2pchnl);
-            conv->fourpc_zeroshare<block_t>(1);
+            conv->fourpc_zeroshare<block_t>(itr);
 
 
             block_t ram_data[ele_lens];
@@ -165,6 +174,7 @@ int main(int argc, const char** argv) {
                 block_t target;
                 Timer::stop("read_online");
                 conv->fourpc_share_2_replicated_share<block_t>(&tmp, 1);
+                
                 Timer::record("write_online");
                 test_ram->write(2, target, tmp, false);
                 Timer::stop("write_online");

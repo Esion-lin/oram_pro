@@ -11,6 +11,7 @@
 #include <vector>
 #include <set>
 #include <functional>
+#include <omp.h>
 using namespace std;
 using fss_triple = pair<ServerKeyEq, uint32_t>;
 using write_tuple = tuple<ServerKeyEq, ServerKeyEq, uint32_t, uint32_t, uint32_t>;
@@ -301,7 +302,7 @@ void fourpc_reveal_2(R* data, R* data2, int len, std::set<std::string> sts, std:
 }
 
 template <typename R>
-void fourpc_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
+void fourpc_reveal(const R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){
     /*reveal to all parties*/
     if(st == "aid") return;
     if(st != "player0")
@@ -532,11 +533,12 @@ public:
             if(st == "player0"||st == "player1") delta_r = delta2[0];
             else delta_r = delta2[1];
         }
-       while(delta_r > (1<<31)) delta_r+=data_len;
+        while(delta_r > (1<<31)) delta_r+=data_len;
         delta_r = delta_r % data_len;
+        mpz_class ans_list[data_len];
+        evaluateEq(&faccess, &read_triples[read_times].first, ans_list, data_len);
         for(uint32_t i = 0; i < data_len; i++){
-            mpz_class ans = evaluateEq(&faccess, &read_triples[read_times].first, sub(i, delta_r, data_len));
-            list[i] = mpz_get_ui(ans.get_mpz_t());
+            list[i] = mpz_get_ui(ans_list[sub(i, delta_r, data_len)].get_mpz_t());
         }
         free_key<ServerKeyEq>(read_triples[read_times].first);
         read_times ++;
@@ -576,13 +578,38 @@ public:
         while(delta_r > (1<<31)) delta_r+=data_len;
         delta_r = delta_r % data_len;
         T res;
-        
-        for(uint32_t i = 0; i < data_len; i++){
-            mpz_class ans = evaluateEq(&faccess, &read_triples[read_times].first, sub(i, delta_r, data_len));
-            uint32_t tmp = mpz_get_ui(ans.get_mpz_t());
-            if(i == 0) res = mul_cb(is_contain?data[i]:data_ptr[i], tmp);
-            else res = add_cb(res, mul_cb(is_contain?data[i]:data_ptr[i], tmp));
+        mpz_class *ans_list = new mpz_class[data_len];
+        #ifdef SIGLE_TEST
+
+        if(st == "player0"){
+            evaluateEq(&faccess, &read_triples[read_times].first, ans_list, data_len);
+            #pragma omp for
+            for(uint32_t i = 0; i < data_len; i++){
+                T tmp_res;
+                uint32_t tmp = mpz_get_ui(ans_list[sub(i, delta_r, data_len)].get_mpz_t());
+                tmp_res = mul_cb(is_contain?data[i]:data_ptr[i], tmp);
+                #pragma omp critical
+                {
+                    if(i == 0) res = tmp_res;
+                    else res = add_cb(res, tmp_res);
+                }
+                
+            }
         }
+        #endif
+        #ifndef SIGLE_TEST
+        evaluateEq(&faccess, &read_triples[read_times].first, ans_list, data_len);
+        for(uint32_t i = 0; i < data_len; i++){
+            T tmp_res;
+            uint32_t tmp = mpz_get_ui(ans_list[sub(i, delta_r, data_len)].get_mpz_t());
+            tmp_res = mul_cb(is_contain?data[i]:data_ptr[i], tmp);
+            if(i == 0) res = tmp_res;
+            else res = add_cb(res, tmp_res);
+
+            
+        }
+        #endif
+        delete[] ans_list;
         free_key<ServerKeyEq>(read_triples[read_times].first);
         read_times ++;
         return res;
@@ -703,17 +730,21 @@ public:
         while(delta_r[0] > (1<<31)) delta_r[0]+=data_len;
         while(delta_r[1] > (1<<31)) delta_r[1]+=data_len;
         delta_r[0] = delta_r[0] % data_len;delta_r[1] = delta_r[1] % data_len;
+        mpz_class* first_list = new mpz_class[data_len];
+        evaluateEq(&faccess, &get<0>(write_triples[write_times]), first_list, data_len);
+        mpz_class* second_list = new mpz_class[data_len];
+        evaluateEq(&faccess, &get<1>(write_triples[write_times]), second_list, data_len);
         for(uint32_t i = 0; i < data_len; i++){
-            mpz_class ans = evaluateEq(&faccess, &get<0>(write_triples[write_times]), sub(i, delta_r[0], data_len));
-            uint32_t tmp = mpz_get_ui(ans.get_mpz_t());
+            uint32_t tmp = mpz_get_ui(first_list[sub(i, delta_r[0], data_len)].get_mpz_t());
             /*------*--*-不合法的域转换，TODO使用truncation协议-*--*--*------*/
             if(st == "player0" || st == "player1") data_ptr[i] = data_ptr[i] + tmp;
             else data_ptr[i] = data_ptr[i] - tmp;
-            ans = evaluateEq(&faccess, &get<1>(write_triples[write_times]), sub(i, delta_r[1], data_len));
-            tmp = mpz_get_ui(ans.get_mpz_t());
+        
+            tmp = mpz_get_ui(second_list[sub(i, delta_r[1], data_len)].get_mpz_t());
             if(st == "player0" || st == "player1") data_ptr[i] = data_ptr[i] + deltaV*tmp;
             else data_ptr[i] = data_ptr[i] - deltaV*tmp;
         }
+        delete[] first_list;delete[] second_list;
         free_key<ServerKeyEq>(get<1>(write_triples[write_times]));
         free_key<ServerKeyEq>(get<0>(write_triples[write_times]));
         write_times ++;

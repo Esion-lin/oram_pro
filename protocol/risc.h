@@ -209,7 +209,7 @@ public:
         }
         std::cout<<"\n--------------mem debug-----------\n";
         for(int i = 0; i < indx; i++) std::cout<<"mem:"<<myenv.mem[i]<< " ";
-        std::cout<<"\n pc: "<<pc<<" res: "<<ress<<" flag: "<<flagss<<" rc:"<<rc[0]<<" "<<rc[1];
+        //std::cout<<"\n pc: "<<pc<<" res: "<<ress<<" flag: "<<flagss<<" rc:"<<rc[0]<<" "<<rc[1];
         std::cout<<"\n--------------done-----------\n";
     }
     ~Mechine(){

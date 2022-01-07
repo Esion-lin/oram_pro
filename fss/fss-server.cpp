@@ -1,6 +1,7 @@
 // This is the server side code for FSS which does the evaluation
-
+#include <sys/time.h>
 #include "fss-server.h"
+#include <queue>
 void initializeServer(Fss* fServer, Fss* fClient) {
     fServer->numKeys = fClient->numKeys;
     fServer->aes_keys = (AES_KEY*) malloc(sizeof(AES_KEY)*fClient->numKeys);
@@ -9,56 +10,206 @@ void initializeServer(Fss* fServer, Fss* fClient) {
     fServer->numParties = fClient->numParties;
     fServer->prime = fClient->prime;
 }
-// mpz_class evaluateEq(Fss* f, ServerKeyEq *k, uint64_t n, bool full) {
+// /*full domain*/
+// void evaluateEq(Fss* f, ServerKeyEq *k, mpz_class* res, uint32_t lens) {
+    
+//     struct timeval t1, t2;
+//     gettimeofday(&t1,NULL);
+//     std::queue<uint8_t*> s_tmp;
+//     std::queue<uint8_t> t_tmp;
 //     // get num bits to be compared
 //     uint32_t n = f->numBits;
-
+//     uint32_t itr = 0;
 //     // start at the correct LSB
-//     int xi = getBit(x, (64-n+1));
-//     unsigned char s[16];
-//     memcpy(s, k->s[xi], 16);
-//     unsigned char t = k->t[xi];
+//     uint8_t* s = (uint8_t*) malloc(16);
+//     memcpy(s, k->s[0], 16);
+//     s_tmp.push(s);
+// #ifdef REDUCE_FSS
+//     if((lens >> n) & 1 == 1){
+// #endif
+//     s = (uint8_t*) malloc(16);
+//     memcpy(s, k->s[1], 16);
+//     s_tmp.push(s);
+// #ifdef REDUCE_FSS
+//     }
+// #endif
+//     t_tmp.push(k->t[0]);
+//     t_tmp.push(k->t[1]);
+//     unsigned char t;
     
 //     unsigned char sArray[32];
 //     unsigned char temp[2];
 //     unsigned char out[48];
+    
+//     uint32_t tmp_j = 1;
 //     for (uint32_t i = 1; i < n+1; i++) {
-//         if(i!=n) {
-//             xi = getBit(x, (64-n+i+1));
-//         } else {
-//             xi = 0;
+//         /*i = 2 j = 2*/
+//         tmp_j<<=1;
+
+//         #ifdef REDUCE_FSS
+//         if((lens >> (n + 1 - i)) & 1 == 0) tmp_j -= 1;
+//         #endif
+//         uint8_t* sss[tmp_j];
+//         uint8_t* outs[tmp_j];
+//         uint8_t ttt[tmp_j];
+//         for(int j = 0; j < tmp_j; j++){
+            
+            
+//             sss[j] = s_tmp.front(); s_tmp.pop();
+            
+//             ttt[j] = t_tmp.front(); t_tmp.pop();
+//             outs[j] = new uint8_t[48];
 //         }
-//         prf(out, s, 48, f->aes_keys, f->numKeys);
-//         memcpy(sArray, out, 32);
-//         temp[0] = out[32] % 2;
-//         temp[1] = out[33] % 2;
-//         //printf("s: ");
-//         //printByteArray(s, 16);
-//         //printf("out: %d %d\n", out[32], out[33]);
-//         if (i == n) {
-//             break;
+//         // #pragma omp for
+//         // for(int j = 0; j < tmp_j; j++){
+//         //     prf(outs[j], sss[j], 48, f->aes_keys, f->numKeys);
+//         // }
+//         for(int j = 0; j < tmp_j; j++){
+            
+            
+//             s = sss[j];
+            
+//             t = ttt[j];
+
+            
+//             memcpy(sArray, outs[j], 32);
+//             temp[0] = outs[j][32] % 2;
+//             temp[1] = outs[j][33] % 2;
+//             free(outs[j]);
+//             free(s);
+//             if (i == n) {
+//                 mpz_class ans;
+//                 unsigned char sIntArray[34];
+//                 memcpy(sIntArray, sArray, 32);
+//                 sIntArray[32] = temp[0];
+//                 sIntArray[33] = temp[1];
+//                 mpz_import(ans.get_mpz_t(), 34, 1, sizeof(sIntArray[0]), 0, 0, sIntArray);
+//                 ans = ans * k->w;
+//                 ans = ans % f->prime;
+//                 res[itr ++] = ans;
+//                 if(itr >= lens) {
+//                     for(int jss = j + 1; jss < tmp_j; jss ++) {free(sss[jss]);delete[] outs[jss];}
+//                     gettimeofday(&t2,NULL);
+//                     std::cout<< "evl time " <<(t2.tv_sec - t1.tv_sec) + (double)(t2.tv_usec - t1.tv_usec)/1000000.0<<std::endl;
+//                     break;
+//                 }
+//                 continue;
+//             }
+            
+//             for(int ii = 0; ii < 2; ii++){
+//                 uint8_t tt;
+//                 s = (uint8_t*) malloc(16);
+//                 memcpy(s, (unsigned char*)(sArray + (ii*16)), 16);
+//                 #pragma omp simd
+//                 for (uint32_t jj = 0; jj < 16; jj++) {
+//                     s[jj] = s[jj] ^ k->cw[t][i-1].cs[ii][jj];
+//                 }
+                   
+//                 tt = temp[ii] ^ k->cw[t][i-1].ct[ii];
+//                 s_tmp.push(s);t_tmp.push(tt);
+                
+//             }
+            
+    
 //         }
-//         int xStart = 16 * xi;
-//         memcpy(s, (unsigned char*) (sArray + xStart), 16);
-//         for (uint32_t j = 0; j < 16; j++) {
-//             s[j] = s[j] ^ k->cw[t][i-1].cs[xi][j];
-//         }
-//         //printf("After XOR: ");
-//         //printByteArray(s, 16);
-//         //printf("%d: t: %d %d, ct: %d, bit: %d\n", i, temp[0], temp[1], k->cw[t][i-1].ct[xi], xi);
-//         t = temp[xi] ^ k->cw[t][i-1].ct[xi];
+
 //     }
 
-//     mpz_class ans;
-//     unsigned char sIntArray[34];
-//     memcpy(sIntArray, sArray, 32);
-//     sIntArray[32] = temp[0];
-//     sIntArray[33] = temp[1];
-//     mpz_import(ans.get_mpz_t(), 34, 1, sizeof(sIntArray[0]), 0, 0, sIntArray);
-//     ans = ans * k->w;
-//     ans = ans % f->prime;
-//     return ans;
+    
 // }
+
+/*full domain*/
+void evaluateEq(Fss* f, ServerKeyEq *k, mpz_class* res, uint32_t lens) {
+    
+    // struct timeval t1, t2;
+    // gettimeofday(&t1,NULL);
+    std::queue<uint8_t*> s_tmp;
+    std::queue<uint8_t> t_tmp;
+    // get num bits to be compared
+    uint32_t n = f->numBits;
+    uint32_t itr = 0;
+    // start at the correct LSB
+    uint8_t* s = (uint8_t*) malloc(16);
+    memcpy(s, k->s[0], 16);
+    s_tmp.push(s);
+#ifdef REDUCE_FSS
+    if((lens >> n) & 1 == 1){
+#endif
+    s = (uint8_t*) malloc(16);
+    memcpy(s, k->s[1], 16);
+    s_tmp.push(s);
+#ifdef REDUCE_FSS
+    }
+#endif
+    t_tmp.push(k->t[0]);
+    t_tmp.push(k->t[1]);
+    unsigned char t;
+    
+    unsigned char sArray[32];
+    unsigned char temp[2];
+    unsigned char out[48];
+    uint32_t tmp_j = 1;
+    for (uint32_t i = 1; i < n+1; i++) {
+        /*i = 2 j = 2*/
+        tmp_j<<=1;
+
+        #ifdef REDUCE_FSS
+        if((lens >> (n + 1 - i)) & 1 == 0) tmp_j -= 1;
+        #endif
+        for(int j = 0; j < tmp_j; j++){
+            
+
+            s = s_tmp.front(); s_tmp.pop();
+            
+            t = t_tmp.front(); t_tmp.pop();
+            prf(out, s, 48, f->aes_keys, f->numKeys);
+            
+            memcpy(sArray, out, 32);
+            temp[0] = out[32] % 2;
+            temp[1] = out[33] % 2;
+            free(s);
+            if (i == n) {
+                mpz_class ans;
+                unsigned char sIntArray[34];
+                memcpy(sIntArray, sArray, 32);
+                sIntArray[32] = temp[0];
+                sIntArray[33] = temp[1];
+                mpz_import(ans.get_mpz_t(), 34, 1, sizeof(sIntArray[0]), 0, 0, sIntArray);
+                ans = ans * k->w;
+                ans = ans % f->prime;
+                res[itr ++] = ans;
+                if(itr >= lens) {
+                    while(!s_tmp.empty()){
+                        s = s_tmp.front(); s_tmp.pop();free(s);
+                    }
+                    // gettimeofday(&t2,NULL);
+                    // std::cout<< "evl time " <<(t2.tv_sec - t1.tv_sec) + (double)(t2.tv_usec - t1.tv_usec)/1000000.0<<std::endl;
+                    break;
+                }
+                continue;
+            }
+            
+            for(int ii = 0; ii < 2; ii++){
+                uint8_t tt;
+                s = (uint8_t*) malloc(16);
+                memcpy(s, (unsigned char*)(sArray + (ii*16)), 16);
+                #pragma omp simd
+                for (uint32_t jj = 0; jj < 16; jj++) {
+                    s[jj] = s[jj] ^ k->cw[t][i-1].cs[ii][jj];
+                }
+                   
+                tt = temp[ii] ^ k->cw[t][i-1].ct[ii];
+                s_tmp.push(s);t_tmp.push(tt);
+                
+            }
+            
+    
+        }
+
+    }
+
+    
+}
 
 // evaluate whether x satisifies value in function stored in key k
 
@@ -77,11 +228,8 @@ mpz_class evaluateEq(Fss* f, ServerKeyEq *k, uint64_t x) {
     unsigned char temp[2];
     unsigned char out[48];
     for (uint32_t i = 1; i < n+1; i++) {
-        if(i!=n) {
-            xi = getBit(x, (64-n+i+1));
-        } else {
-            xi = 0;
-        }
+        
+        xi = getBit(x, (64-n+i+1));
         prf(out, s, 48, f->aes_keys, f->numKeys);
         memcpy(sArray, out, 32);
         temp[0] = out[32] % 2;
@@ -94,9 +242,11 @@ mpz_class evaluateEq(Fss* f, ServerKeyEq *k, uint64_t x) {
         }
         int xStart = 16 * xi;
         memcpy(s, (unsigned char*) (sArray + xStart), 16);
+        
         for (uint32_t j = 0; j < 16; j++) {
             s[j] = s[j] ^ k->cw[t][i-1].cs[xi][j];
         }
+        
         //printf("After XOR: ");
         //printByteArray(s, 16);
         //printf("%d: t: %d %d, ct: %d, bit: %d\n", i, temp[0], temp[1], k->cw[t][i-1].ct[xi], xi);

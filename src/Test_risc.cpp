@@ -90,8 +90,9 @@ int main(int argc, char** argv){
         Timer::record("run_ins");
         now_mechine->run_op();
         now_mechine->ret_res();
-        now_mechine->print_res_flag(8);
         Timer::stop("run_ins");
+        now_mechine->print_res_flag(8);
+        
         std::cout<<"-----------------------test done-------------------\n";
         }
     now_mechine->print_res_flag(8);
