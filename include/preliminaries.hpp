@@ -381,10 +381,9 @@ private:
     std::vector<write_tuple> write_triples;
     bool is_contain = false;
     int read_times, write_times;
-    void share(std::string from_p){
-
-    }
-    
+#ifdef USE_MPC_GEN
+    FSS_MPC* fss_comp;
+#endif 
 public:
     uint32_t data_len;
     T* data_ptr;
@@ -417,6 +416,9 @@ public:
         init_flag = true;
         read_times = 0;
         write_times = 0;
+    }
+    void prepare_read_with_mpc(uint16_t ntimes){
+        
     }
     void prepare_read(uint16_t ntimes){
         if(!init_flag){

@@ -5,7 +5,8 @@
 #include "convert.h"
 #include <memory>
 #define M_LEN 32
-#define MEM_LEN 1024
+#define MEM_LEN 4028
+#define PRO_SIZE 512
 #define TAPE_LEN 32
 //define instruction words lens
 #define OPT_LEN 5
@@ -207,9 +208,12 @@ public:
         for(int i = 0; i < M_LEN; i++){
             std::cout<<m_rig[i]<<" ";
         }
-        std::cout<<"\n--------------mem debug-----------\n";
-        for(int i = 0; i < indx; i++) std::cout<<"mem:"<<myenv.mem[i]<< " ";
-        //std::cout<<"\n pc: "<<pc<<" res: "<<ress<<" flag: "<<flagss<<" rc:"<<rc[0]<<" "<<rc[1];
+        // std::cout<<"\n--------------mem debug-----------\n";
+        // for(int i = 0; i < MEM_LEN; i++) std::cout<<"mem:"<<mem[i]<< " ";
+        if(indx != 0){
+            for(int i = PRO_SIZE; i <= PRO_SIZE + indx; i++) std::cout<<"mem:"<<mem[i]<< " ";
+        }
+        std::cout<<"\n pc: "<<pc<<" res: "<<ress<<" flag: "<<flagss<<" rc:"<<rc[0]<<" "<<rc[1];
         std::cout<<"\n--------------done-----------\n";
     }
     ~Mechine(){

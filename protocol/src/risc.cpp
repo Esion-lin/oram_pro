@@ -91,8 +91,8 @@ void Mechine::load_env(){
     
     fourpc_share<WORD>(&(myenv.flag), 1, st, p2pchnl);
     fourpc_share<WORD>(&(myenv.rc0), 4, st, p2pchnl);
-    ins_ram = new Ram<uint64_t>(reinterpret_cast<uint64_t*>(myenv.mem), MEM_LEN/2, st, p2pchnl);
-    mem_ram = new Ram<uint32_t>(&myenv.mem[MEM_LEN/2], MEM_LEN/2, st, p2pchnl);
+    ins_ram = new Ram<uint64_t>(reinterpret_cast<uint64_t*>(myenv.mem), PRO_SIZE/2, st, p2pchnl);
+    mem_ram = new Ram<uint32_t>(&myenv.mem[PRO_SIZE], MEM_LEN - PRO_SIZE, st, p2pchnl);
     tape1_ram = new Ram<WORD>(myenv.tape1, TAPE_LEN, st, p2pchnl);
     tape2_ram = new Ram<WORD>(myenv.tape2, TAPE_LEN, st, p2pchnl);
     m_ram = new Ram<WORD>(myenv.m, M_LEN, st, p2pchnl);
@@ -161,8 +161,12 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     /*cmp*/
     Pratical_OT* ot = new Pratical_OT(p2pchnl, st);
     Bitwise * bitwise = new Bitwise(ot, st, p2pchnl);
+#ifdef Total_bitwise
     std::vector<std::string> gcfiles = {"../cir/and_32.txt", "../cir/or_32.txt", "../cir/xor_32.txt", "../cir/not_32.txt", "../cir/left_shift.txt", "../cir/right_shift.txt"};
-    
+#else
+
+    std::vector<std::string> gcfiles = {"../cir/right_shift.txt"};
+#endif
     if(st == "player0") myenv.pc += 1;
     res[CMOV] = Ri;
     res[STORE] = Ri;
@@ -173,19 +177,22 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     flags[JMP] = myenv.flag;
     flags[CJMP] = myenv.flag;
     flags[CNJMP] = myenv.flag;
-    Cmp_a_e_ae* eq_cmp = new Cmp_a_e_ae(&Rj, &A, &res[COMPE], &flags[COMPE], 1, 1, st, p2pchnl);
-    Cmp_a_e_ae* ae_cmp = new Cmp_a_e_ae(&Rj, &A, &res[COMPAE], &flags[COMPAE], 1, 2, st, p2pchnl);
+    Cmp_a_e_ae* eq_cmp = new Cmp_a_e_ae(&Ri, &A, &res[COMPE], &flags[COMPE], 1, 1, st, p2pchnl);
+    Cmp_a_e_ae* ae_cmp = new Cmp_a_e_ae(&Ri, &A, &res[COMPAE], &flags[COMPAE], 1, 2, st, p2pchnl);
     Read * read_op = new Read(A, &myenv.rc0, &res[READ], &flags[READ], st, p2pchnl, tape1_ram, tape2_ram);
     WORD read_eq[2];
     Cmp_a_e_ae*read_flag = new Cmp_a_e_ae(&myenv.rc0, &myenv.num0, read_eq, read_eq, 2, 1, st, p2pchnl);
     /*add/sub*/
     Add_sub * add_op = new Add_sub(&Rj, &A, &res[ADD], &flags[ADD], 1, 1, st, p2pchnl);
     Add_sub * sub_op = new Add_sub(&Rj, &A, &res[SUB], &flags[SUB], 1, 2, st, p2pchnl);
+#ifdef NEED_MUL
     Mul *mul_op = new Mul(Rj, A, &res[MULL], &flags[MULL], st, p2pchnl);
+#endif
     /* mov & cmov*/
     Mov *mov_op = new Mov(&Rj, &A, &res[MOV], &flags[MOV], 1, 1, st, p2pchnl);
+#ifdef NEED_CMOV
     Mov *cmov_op = new Mov(&Rj, &A, &res[CMOV], &flags[CMOV], 1, 2, st, p2pchnl);
-    
+#endif
     /* load & store*/
     Load * load_op = new Load(&Rj, &A, &res[LOAD], &flags[LOAD], 1, 1, st, p2pchnl, mem_ram);
     Store * store_op = new Store(&Ri, &A, &res[STORE], &flags[STORE], 1, 1, st, p2pchnl, mem_ram);
@@ -198,9 +205,13 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     ae_cmp->offline();
     add_op->offline();
     sub_op->offline();
+#ifdef NEED_MUL
     mul_op->offline();
+#endif
     mov_op->offline();
+#ifdef NEED_CMOV
     cmov_op->offline();
+#endif
     load_op->offline();
     store_op->offline();
     read_op->offline(betas[READ]);
@@ -219,9 +230,13 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     ae_cmp->round1();
     add_op->round1();
     sub_op->round1();
+#ifdef NEED_MUL
     mul_op->round1();
+#endif
     mov_op->round1();
+#ifdef NEED_CMOV
     cmov_op->round1();
+#endif
     load_op->round1();
     store_op->round1();
     jump_op->round1(&(myenv.pc));
@@ -237,9 +252,13 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     ae_cmp->round2();
     add_op->round2();
     sub_op->round2();
+#ifdef NEED_MUL
     mul_op->round2();
+#endif
     mov_op->round2();
+#ifdef NEED_CMOV
     cmov_op->round2();
+#endif
     load_op->round2();
     store_op->round2();
     jump_op->round2(&(myenv.pc), betas[JMP]);
@@ -257,9 +276,13 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     ae_cmp->round3();
     add_op->round3();
     sub_op->round3();
+#ifdef NEED_MUL
     mul_op->round3();
+#endif
     mov_op->round3();
+#ifdef NEED_CMOV
     cmov_op->round3();
+#endif
     load_op->round3();
     store_op->round3(load_op->res, betas[STORE]);
     jump_op->round3(&(myenv.pc), betas[JMP]);
@@ -269,6 +292,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     if(st == "player0"){
         p2pchnl->send_data_to("player1", &bitwise->r, sizeof(uint64_t));
         p2pchnl->send_data_to("player1", &bitwise->r_flag, sizeof(uint64_t));
+
         for(int i = AND; i <= SHR; i++){
             res[i] = bitwise->r;
             flags[i] = bitwise->r_flag;
@@ -277,16 +301,22 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     if(st == "player2"){ 
         bitwise->to_As("player0", "player2",32);
         uint32_t r_arr[6], flag_arr[6];
+        
         for(int i = 0; i < 6; i++){
             r_arr[i] = bitwise->r_set[i];
             flag_arr[i] = bitwise->rflag_set[i];
         } 
         p2pchnl->send_data_to("player3", r_arr, sizeof(uint32_t)* 6);
         p2pchnl->send_data_to("player3", flag_arr, sizeof(uint32_t)* 6);
+#ifdef Total_bitwise
         for(int i = AND; i <= SHR; i++) {
             res[i] = r_arr[i - AND];
             flags[i] = flag_arr[i - AND];
         }
+#else
+        res[SHR] = r_arr[0];
+        flags[SHR] = flag_arr[0];
+#endif
     }
     read_op->round3(read_eq);
     /*round-end*/
@@ -295,7 +325,9 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     ae_cmp->roundend();
     add_op->roundend();
     sub_op->roundend();
+#ifdef NEED_MUL
     mul_op->roundend();
+#endif
     store_op->roundend(load_op->res, betas[STORE]);
     if(st == "player1"){
         uint64_t r,r_flag;
@@ -309,11 +341,16 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
         uint32_t r_arr[6], flag_arr[6];
         p2pchnl->recv_data_from("player2", &r_arr, sizeof(uint32_t)* 6);
         p2pchnl->recv_data_from("player2", &flag_arr, sizeof(uint32_t)* 6);
+#ifdef Total_bitwise
         for(int i = AND; i <= SHR; i++){
             res[i] = r_arr[i - AND];
             flags[i] = flag_arr[i - AND];
             
         } 
+#else
+        res[SHR] = r_arr[0];
+        flags[SHR] = flag_arr[0];
+#endif
         
     }
     read_op->roundend(read_eq);
@@ -331,7 +368,9 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     delete add_op;
     delete sub_op;
     delete mov_op;
+#ifdef NEED_CMOV
     delete cmov_op;
+#endif
     delete load_op;
     delete store_op;
     delete jump_op;
@@ -341,7 +380,9 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     delete ot;
     delete read_op;
     delete read_flag;
+#ifdef NEED_MUL
     delete mul_op;
+#endif
 }
 void Mechine::ret_res(){
     now_res = 0;

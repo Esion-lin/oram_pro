@@ -104,7 +104,7 @@ int main(int argc, const char** argv) {
         ele_lens = parser.get<int>("elements_lens");
     }
     std::string st = parser.get<std::string>("role");
-    // ele_lens/=128;
+    
     // std::cout<<"ele lens "<<ele_lens;
     /*
     start oram
@@ -121,17 +121,21 @@ int main(int argc, const char** argv) {
             
             for(int i = 0; i < ele_lens; i++) ram_data[i] = i;
             Timer::record("total time");
+            Timer::record("init");
             replicated_share<uint32_t>(ram_data, ele_lens, st, p2pchnl);
+            ele_lens/=128;
             Ram<uint32_t>* test_ram = new Ram<uint32_t>(ram_data, ele_lens, st, p2pchnl);
             test_ram->init();
-            Timer::record("read_offline");
+            p2pchnl->flush_all();
+            Timer::stop("init");
+            Timer::record("read_online");
             test_ram->prepare_read(itr);
             p2pchnl->flush_all();
-            Timer::stop("read_offline");
-            Timer::record("write_offline");
+            Timer::stop("read_online");
+            Timer::record("write_online");
             test_ram->prepare_write(itr);
             p2pchnl->flush_all();
-            Timer::stop("write_offline");
+            Timer::stop("write_online");
 
             while(itr -- ){
                 Timer::record("read_online");
@@ -146,9 +150,12 @@ int main(int argc, const char** argv) {
                 p2pchnl->flush_all();
             }
             Timer::stop("total time");
+            
             free(ram_data);
-            delete conv;
             delete test_ram;
+            
+            delete conv;
+            
         
     }else{
         
@@ -183,7 +190,7 @@ int main(int argc, const char** argv) {
             delete test_ram;
         
     }
-    Timer::test_print();
+    Timer::test_print(st+".csv");
     delete cfg;
     delete p2pchnl;
 

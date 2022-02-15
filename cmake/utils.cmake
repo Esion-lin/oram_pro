@@ -72,24 +72,13 @@ function(__download_pkg pkg_name pkg_url pkg_md5)
 
 endfunction()
 
-
-function(__find_pkg_then_add_target pkg_name pkg_exe lib_path)
+#                                                0     lib
+function(__find_pkg_then_add_target pkg_name lib_path)
 
     unset(${pkg_name}_LIBS)
 
     message("_FIND:${${pkg_name}_BASE_DIR}")
 
-    if(pkg_exe)
-        find_program(${pkg_exe}_EXE ${pkg_exe} PATHS ${${pkg_name}_BASE_DIR}/bin NO_DEFAULT_PATH)
-        if(NOT ${pkg_exe}_EXE)
-            return()
-        endif()
-        add_executable(${pkg_name}::${pkg_exe} IMPORTED GLOBAL)
-        set_target_properties(${pkg_name}::${pkg_exe} PROPERTIES
-                IMPORTED_LOCATION ${${pkg_exe}_EXE}
-                )
-        message("found ${${pkg_exe}_EXE}")
-    endif()
 
     foreach(_LIB_NAME ${ARGN})
         set(_LIB_SEARCH_NAME ${_LIB_NAME})

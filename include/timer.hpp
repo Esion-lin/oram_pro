@@ -3,6 +3,7 @@
 #include <time.h>
 #include <string.h>
 #include <iostream>
+#include <fstream>  
 #include <map>
 class Timer{
     public:
@@ -41,11 +42,17 @@ class Timer{
             times[tmp] = times[tmp] + (t1.tv_sec - ptrs[tmp].tv_sec) + (double)(t1.tv_usec - ptrs[tmp].tv_usec)/1000000.0;
         }
     }
-    static void test_print(){
+    static void test_print(std::string path = "data.csv"){
+        ofstream outFile;  
+        outFile.open(path, ios::app);
         for(auto ele:times){
             printf("%s: %lf seconds\n", ele.first.c_str(), ele.second);
+            if(ele.first == "init") outFile << ele.second << ',';
+            else outFile << ele.second *10 << ',';
         }
+        outFile<<std::endl;
     }
+
 };
 
 

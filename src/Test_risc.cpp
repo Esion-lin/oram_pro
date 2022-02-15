@@ -16,7 +16,8 @@ int main(int argc, char** argv){
     Ins testins;
     uint32_t char_int;
     Env testenv;
-    for (int i = 0; i < 18; i++){
+    int ins_lens = 17;
+    for (int i = 0; i < ins_lens; i++){
         infile>>char_int;
         testins.optr = char_int;
         infile>>char_int;
@@ -46,15 +47,19 @@ int main(int argc, char** argv){
         testenv.tape2[i] = 200+i;
         
     }
-    testenv.tape1[0] = 3030;
+    srand((unsigned) time(NULL));
+    testenv.tape1[0] = 528;
+    testenv.tape1[1] = 2;
+    testenv.tape1[2] = 102;
+
     for(int i = 0; i < M_LEN; i++){
         testenv.m[i] = i;
     }
-    for(int i = 512; i < MEM_LEN; i++){
-        testenv.mem[i] = 2000 + 2*i;
+    for(int i = PRO_SIZE; i < MEM_LEN; i++){
+        testenv.mem[i] = i;
+        if( i < PRO_SIZE + 200) std::cout<<testenv.mem[i]<<" ";
     }
-    testenv.mem[512] = 0;
-    testenv.mem[513] = 100;
+    std::cout<<std::endl;
 
 
 
@@ -65,19 +70,20 @@ int main(int argc, char** argv){
     
     Mechine * now_mechine;
     if(st == "aid"){
-        now_mechine = new Mechine(argv[1], p2pchnl, testenv, 32);
+        now_mechine = new Mechine(argv[1], p2pchnl, testenv, ins_lens);
         //std::cout<<m2i(load_T<uint64_t>(now_mechine->myenv.mem, 0))<<std::endl;
     }
     else{
-        now_mechine = new Mechine(argv[1], p2pchnl, 32);
+        now_mechine = new Mechine(argv[1], p2pchnl, ins_lens);
     }
     
-    now_mechine->print_res_flag(1);
+    // now_mechine->print_res_flag(1);
     now_mechine->load_env();
-    
+    int total_seq = 0;
     while(true){
+        total_seq++;
         Timer::record("load_ins");
-        //std::cout<<"NO."<<i<<" -----------------------test load ins-------------------\n";
+        std::cout<<"NO."<<total_seq<<" -----------------------test load ins-------------------\n";
         Ins a = now_mechine->load_ins();
         if(now_mechine->done) break;
         Timer::stop("load_ins");
@@ -86,17 +92,19 @@ int main(int argc, char** argv){
         //if(st == "player0") std::cout<<"Ri "<<re_list[0]<<"; Rj "<<re_list[1]<<"; A "<<re_list[2]<<";\n";
         //std::cout<<"-----------------------test done-------------------\n";
         
-        std::cout<<"-----------------------test run_op-------------------\n";
+        //std::cout<<"-----------------------test run_op-------------------\n";
         Timer::record("run_ins");
         now_mechine->run_op();
         now_mechine->ret_res();
         Timer::stop("run_ins");
         now_mechine->print_res_flag(8);
         
-        std::cout<<"-----------------------test done-------------------\n";
+        //std::cout<<"-----------------------test done-------------------\n";
         }
-    now_mechine->print_res_flag(8);
+    now_mechine->print_res_flag(14);
+    
     Timer::test_print();
+    std::cout<<"total run ins "<<total_seq<<" "<<Timer::times["run_ins"]/total_seq<<" s per ins"<<std::endl;
     delete cfg;
     delete p2pchnl;
     delete now_mechine;
