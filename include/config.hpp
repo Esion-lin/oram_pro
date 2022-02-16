@@ -35,9 +35,31 @@ class Config{
     std::string get_player(){
         return current_player;
     }
+    std::string get_suc(){
+        /*for 3-parties*/
+        if(current_player == "player0") return "player1";
+        if(current_player == "player1") return "player2";
+        if(current_player == "player2") return "player0";
+    }
+    std::string get_pre(){
+        /*for 3-parties*/
+        if(current_player == "player1") return "player0";
+        if(current_player == "player2") return "player1";
+        if(current_player == "player0") return "player2";
+    }
+    uint32_t get_idex(){
+        return current_player[current_player.length() - 1] - '0';
+    }
+    uint32_t get_suc_idex(){
+        return (get_idex() + 1) % 3;
+    }
+    uint32_t get_pre_idex(){
+        return (get_idex() + 2) % 3;
+    }
     bool check(std::string st){
         return st == current_player;
     }
+
     private:
     json config_json;
     std::string current_player;

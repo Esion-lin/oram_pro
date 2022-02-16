@@ -82,5 +82,17 @@ void add_reveal(std::set<std::string> owner, std::set<std::string> holders, T* d
     }
     
 }
+template<typename T>
+void deliver(T* data, T* newdata, uint32_t lens){
+    P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), data, lens);
+    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), newdata, lens);
+}
+template<typename T>
+void replicated_share(std::string owner, std::set<std::string> holders, T* data1, T* data2, uint32_t lens,
+    std::function<T (T, T)>op_cb = [](T a, T b) -> T{return a - b;},
+    std::function<T (T, T)>nop_cb = [](T a, T b) -> T{return a + b;}){
+    add_share<T>(owner, holders, data1, lens, op_cb, nop_cb);
+    deliver<T>(data1, data2, lens);
 
+}
 #endif

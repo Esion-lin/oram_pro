@@ -28,12 +28,12 @@ inline void send_mpz(mpz_class data, std::string player, P2Pchannel *p2pchnl = P
     p2pchnl->send_data_to(player, datt, b*sizeof(char));
     free(datt);
 }
-inline mpz_class recv_mpz(P2Pchannel *p2pchnl = P2Pchannel::mychnl){
+inline mpz_class recv_mpz(P2Pchannel *p2pchnl = P2Pchannel::mychnl, std::string fplayer = "aid"){
     size_t b=0;
     char* datt = (char*) malloc(40);
     mpz_class z;
-    p2pchnl->recv_data_from("aid", &b, sizeof(size_t));
-    p2pchnl->recv_data_from("aid", datt, b*sizeof(char));
+    p2pchnl->recv_data_from(fplayer, &b, sizeof(size_t));
+    p2pchnl->recv_data_from(fplayer, datt, b*sizeof(char));
     mpz_import(z.get_mpz_t(), b, -1, sizeof(char), 0, 0, datt);
     free(datt);
     return z;
@@ -51,13 +51,26 @@ inline void send_mpz(mpz_class data, P2Pchannel *p2pchnl = P2Pchannel::mychnl){
     send_all(datt, b*sizeof(char), p2pchnl);
     free(datt);
 }
+inline void send_role_mpz(mpz_class data, P2Pchannel *p2pchnl = P2Pchannel::mychnl, std::set<std::string> roles = {"player0", "player1", "player2", "player3"}){
+    size_t b=0;
+    char* datt = (char*) malloc(40);
+    mpz_export(datt, &b, -1, sizeof(char), 0, 0, data.get_mpz_t());
+    if (b >= 40){
+        LOG(ERROR) << "size out of array! ";
+        free(datt);
+        return ;
+    }
+    send_all(roles, &b, sizeof(size_t), p2pchnl);
+    send_all(roles, datt, b*sizeof(char), p2pchnl);
+    free(datt);
+}
 inline void send_fss_key(Fss &key, P2Pchannel *p2pchnl = P2Pchannel::mychnl){
     send_mpz(key.prime, p2pchnl);
     send_all(&key,sizeof(Fss)-16, p2pchnl);
     send_all(key.aes_keys,sizeof(AES_KEY)*key.numKeys, p2pchnl);
 }
 inline void recv_fss_key(Fss& key, P2Pchannel *p2pchnl = P2Pchannel::mychnl, std::string st = "aid"){
-    mpz_class z = recv_mpz(p2pchnl);
+    mpz_class z = recv_mpz(p2pchnl, st);
     p2pchnl->recv_data_from(st,&key,sizeof(Fss)-16);
     key.prime = z;
     key.aes_keys = (AES_KEY*) malloc(sizeof(AES_KEY)*key.numKeys);
@@ -70,7 +83,7 @@ inline void send_eq_key(ServerKeyEq& key, Fss &fkey, std::string player, P2Pchan
     p2pchnl->send_data_to(player,key.cw[1],(fkey.numBits - 1)*sizeof(CWEq));
 }
 inline void recv_eq_key(ServerKeyEq& key, Fss &fkey, std::string player, P2Pchannel *p2pchnl = P2Pchannel::mychnl){
-    mpz_class tmp = recv_mpz(p2pchnl);
+    mpz_class tmp = recv_mpz(p2pchnl, player);
     p2pchnl->recv_data_from(player,&key,sizeof(ServerKeyEq)-16);
     key.w = tmp;
     key.cw[0] = (CWEq*) malloc(sizeof(CWEq)*(fkey.numBits - 1));
