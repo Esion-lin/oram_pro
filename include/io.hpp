@@ -25,7 +25,7 @@ void add_share(std::string owner, std::set<std::string> holders, T* data, uint32
         for(auto player:holders){
             if(!Config::myconfig->check(player)){
                 T tmp[lens];
-                get_rand({owner, player}, tmp, lens);
+                get_seed<T>({owner, player}, tmp, lens);
                 array_op<T>(op_cb, data, tmp, data, lens);
                 
             }else{
@@ -42,7 +42,7 @@ void add_share(std::string owner, std::set<std::string> holders, T* data, uint32
     }else{
         for(auto player:holders){
             if(Config::myconfig->check(player)){
-                get_rand({owner, player}, data, lens);
+                get_seed<T>({owner, player}, data, lens);
             }
             if(player == owner){
                 incl = true;

@@ -127,6 +127,18 @@ void twopc_reveal(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchn
         data2[i] = data[i] + data2[i];
     }
 }
+template <typename R>
+void twopc_reveal(R* data, R* data2, int len, std::set<std::string> roles){
+    for(auto & player : roles){
+        if(!Config::myconfig->check(player)){
+            P2Pchannel::mychnl->send_data_to(player, data, len*sizeof(R));
+            P2Pchannel::mychnl->recv_data_from(player, data2, len*sizeof(R));
+        }
+    }
+    for(int i = 0 ; i < len; i ++){
+        data2[i] = data[i] + data2[i];
+    }
+}
 /*split twopc_reveal*/
 template <typename R>
 void twopc_reveal_1(R* data, R* data2, int len, std::string st, P2Pchannel *p2pchnl){

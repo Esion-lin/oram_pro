@@ -6,10 +6,10 @@
 #include "fss-common.h"
 #include <set>
 inline void send_all(void *data, int len, P2Pchannel *p2pchnl = P2Pchannel::mychnl){
-    p2pchnl->send_data_to("player0",data,len);
-    p2pchnl->send_data_to("player1",data,len);
-    p2pchnl->send_data_to("player2",data,len);
-    p2pchnl->send_data_to("player3",data,len);
+    for( auto & name: Config::myconfig->Pmap){
+        if( !Config::myconfig->check(name.first)) 
+            p2pchnl->send_data_to(name.first,data,len);
+    }
 }
 inline void send_all(std::set<std::string> roles, void *data, int len, P2Pchannel *p2pchnl = P2Pchannel::mychnl){
     for(auto &rl:roles)
