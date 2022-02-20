@@ -924,8 +924,9 @@ class Thr_pc_ic_id{
     Fss fkey;
     T p, q, mod;
     std::vector<tuple<ServerKeyLt, T>> mks;
-    std::string owner = "aid";
+    
     public:
+    std::string owner = "aid";
     Thr_pc_ic_id(uint32_t deep, std::string owner = "aid"):owner(owner){
         if(owner != ""){
             if(Config::myconfig->check(owner)){
@@ -945,16 +946,31 @@ class Thr_pc_ic_id{
         this->p = p;
         this->q = q;
         this->mod = mod;
-
+        
         if(Config::myconfig->check(owner)){
             
             ServerKeyLt lt_00, lt_01;
             for(int i = 0; i < len; i++){
-                T gamma = (r_in + mod - 1) % mod;
-                generateTreeLt(&fkey, &lt_00, &lt_01, gamma, 1, value);
-                T q_pl = (q + 1) % mod, alpa_p = (p + r_in) % mod, alpa_q = (q + r_in) % mod, alpa_qpl = (q + 1 + r_in) % mod;
-                T z = (alpa_p>alpa_q) - (alpa_p > p) + (alpa_qpl > q_pl) + (alpa_q == mod - 1);
-                T z0 = rand() % mod, z1 = (z + mod - z0) % mod;
+                T gamma, q_pl, alpa_p, alpa_q, alpa_qpl, z, z0, z1;
+                if(mod != 0){
+                    gamma = (r_in + mod - 1) % mod;
+                    generateTreeLt(&fkey, &lt_00, &lt_01, gamma, value);
+                    q_pl = (q + 1) % mod; alpa_p = (p + r_in) % mod; alpa_q = (q + r_in) % mod; alpa_qpl = (q + 1 + r_in) % mod;
+                    z = (alpa_p>alpa_q) - (alpa_p > p) + (alpa_qpl > q_pl) + (alpa_q == mod - 1);
+                    z0 = rand() % mod; z1 = (z + mod - z0) % mod;
+                }
+                else{
+                    gamma = (r_in - 1);
+                    generateTreeLt(&fkey, &lt_00, &lt_01, gamma, value);
+                    q_pl = (q + 1) ; alpa_p = (p + r_in) ; alpa_q = (q + r_in) ; alpa_qpl = (q + 1 + r_in);
+                    z = (alpa_p>alpa_q) - (alpa_p > p) + (alpa_qpl > q_pl) + (alpa_q == mod - 1);
+                    z0 = rand() ; z1 = (z  - z0) ;
+                }
+                
+                
+                
+                
+                
                 send_lt_key(lt_00, fkey, Config::myconfig->get_suc());
                 send_lt_key(lt_01, fkey, Config::myconfig->get_pre());
                 P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &z0, sizeof(T));
@@ -977,14 +993,20 @@ class Thr_pc_ic_id{
     void twopc_ic(T* R, uint32_t len, uint32_t* res){
         if(!Config::myconfig->check(owner)){
             for(int i = 0; i < len; i++){
-                R[i] = R[i] % mod;
-                T q_pl = (q + 1) % mod, x_p = (R[i] + mod - 1 - p) % mod, x_q = (R[i] + mod -1 - q_pl) % mod;
+                T q_pl, x_p, x_q;
+                if(mod != 0){
+                    R[i] = R[i] % mod;
+                    q_pl = (q + 1) % mod; x_p = (R[i] + mod - 1 - p) % mod; x_q = (R[i] + mod -1 - q_pl) % mod;
+                }
+                else{
+                    q_pl = (q + 1); x_p = (R[i] + mod - 1 - p); x_q = (R[i] + mod -1 - q_pl);
+                }
                 uint32_t s_p = (uint32_t)evaluateLt(&fkey, &get<0>(mks[i]), x_p);
                 uint32_t s_q = (uint32_t)evaluateLt(&fkey, &get<0>(mks[i]), x_q);
-                if(Config::myconfig->check("player2")){
+                if(Config::myconfig->check(Config::myconfig->get_pre(owner))){
                     s_p = - s_p; s_q = - s_q;
                 }
-                res[i] = (Config::myconfig->check("player2")) * ((R[i]>p) - (R[i]>q_pl)) - s_p + s_q +  get<1>(mks[i]);
+                res[i] = (Config::myconfig->check(Config::myconfig->get_pre(owner))) * ((R[i]>p) - (R[i]>q_pl)) - s_p + s_q +  get<1>(mks[i]);
                 free_key<ServerKeyLt>(get<0>(mks[i]));
             }
              

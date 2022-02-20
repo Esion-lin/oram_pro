@@ -1,4 +1,4 @@
-#include "sot.hpp"
+#include "csot.hpp"
 #include "io.hpp"
 #include "easylogging++.h"
 INITIALIZE_EASYLOGGINGPP
@@ -14,8 +14,11 @@ int main(int argc, char** argv){
     }
     replicated_share<uint32_t>("player0", {"player0", "player1", "player2"}, datas, rep, 2048);
     std::cout<<datas[0] << " "<<rep[0]<<std::endl;
-    SOT<> * ot = new SOT<>(rep, datas, 2048);
-    std::cout<<ot->online(3)<<std::endl;
-    delete ot;
+    CSOT<uint32_t> * csot = new CSOT<uint32_t>();
+    csot->offline();
+    uint32_t block[2] = {120,1333}, m[2] = {200,1};
+
+    std::cout<<csot->online<uint32_t>(block, m)<<std::endl;
+    delete csot;
     return 0;
 }

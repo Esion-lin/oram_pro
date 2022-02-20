@@ -41,11 +41,23 @@ class Config{
         if(current_player == "player1") return "player2";
         if(current_player == "player2") return "player0";
     }
+    std::string get_suc(std::string st){
+        /*for 3-parties*/
+        if(st == "player0") return "player1";
+        if(st == "player1") return "player2";
+        if(st == "player2") return "player0";
+    }
     std::string get_pre(){
         /*for 3-parties*/
         if(current_player == "player1") return "player0";
         if(current_player == "player2") return "player1";
         if(current_player == "player0") return "player2";
+    }
+    std::string get_pre(std::string st){
+        /*for 3-parties*/
+        if(st == "player1") return "player0";
+        if(st == "player2") return "player1";
+        if(st == "player0") return "player2";
     }
     uint32_t get_idex(){
         return current_player[current_player.length() - 1] - '0';

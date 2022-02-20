@@ -5,7 +5,7 @@ gen/eval fss key under MPC
 */
 #include "net.hpp"
 #include "fss-common.h"
-
+#include "fss_help.hpp"
 
 #include <vector>
 #include <queue>
@@ -198,6 +198,57 @@ public:
     }
 
 };
+template< typename T, typename R, uint16_t deep = 32, uint16_t lambda = 32>
+class DCF_MPC{
+    /*
+    gen ServerKeyLt with mpc
+    */
+    private:
+    Fss fss_key;
+    ServerKeyLt res_key;
+    std::pair<std::string,std::string> players;
+    bool bit;
+    uint8_t s0[lambda];
+    uint8_t t0;
+    R V_alpha = 0;
+    uint8_t V_L, V_R, s_L, s_R;
+    public:
+    DCF(std::pair<std::string,std::string> players):players(players){
+        bit = Config::myconfig->check(players.second);
+        if(Config::myconfig->check(players.first)){
+            initializeClient(&fss_key, deep, 2);
+            send_role_mpz(myfss.prime, P2Pchannel::mychnl, {players.second});
+            send_all({players.second}, &myfss,sizeof(Fss)-16);
+            send_all({players.second}, myfss.aes_keys,sizeof(AES_KEY)*myfss.numKeys);
+        }
+        else if(Config::myconfig->check(players.second)){
+            recv_fss_key(myfss, P2Pchannel::mychnl, players.first);
+        }
+        
+    }
+    void gen(T alpha, R beta){
+        /*sample s_b*/
+        if(!RAND_bytes(s0, lambda)) {
+            printf("Random bytes failed\n");
+            exit(1);
+        }
+        t0 = bit?1:0;
+        for(int j = 1; i < deep + 1; j++){
+            V_L = V_R = 0; 
+            s_L = s_R = 0;
+            for(int w = 0; w < (1 << (j - 1)); w ++){
+                //prf();
+            }
+        }
+        
 
+
+    }
+    ~DCF(){
+        free_key<ServerKeyLt> res_key;
+    }
+    
+
+};
 
 #endif
