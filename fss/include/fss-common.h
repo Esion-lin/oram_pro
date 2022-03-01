@@ -38,7 +38,11 @@ struct CWLt {
     unsigned char ct[2];
     uint64_t cv[2];
 };
-
+struct NCWLt {
+    unsigned char cs[16];
+    unsigned char ct[2];
+    uint64_t cv;
+};
 struct ServerKeyEq {
     unsigned char s[2][16];
     unsigned char t[2];

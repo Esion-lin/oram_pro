@@ -26,5 +26,6 @@ void get_seed(std::set<std::string> roles, T* data, uint32_t lens){
             }
         }
     }
+    P2Pchannel::mychnl->flush_all();
 }
 #endif

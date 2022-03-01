@@ -10,40 +10,39 @@
 #include "fss_help.hpp"
 #include "factory.hpp"
 #include <set>
-template<uint16_t Lambda = 16, uint16_t N = 16>
+#include "timer.hpp"
+#define round_size 4000
+template<typename T = uint32_t, uint16_t Lambda = 16>
 class SOT{
     private:
     Fss myfss;
     /*i+1, i-1*/
-    ServerKeyEq gk, sk;
-    uint32_t *data0;
-    uint32_t *data1; 
+    std::vector<ServerKeyEq> gks, sks;
+    T *data0;
+    T *data1; 
     uint16_t data_lens;
+    uint32_t times;
     uint8_t n0[Lambda], n1[Lambda], n2[Lambda];
     AES_KEY n_0, n_1, n_2;
     public:
-    SOT(uint32_t *data0, uint32_t * data1, uint16_t data_lens):data0(data0),data1(data1),data_lens(data_lens){
+    SOT(T *data0, T * data1, uint16_t data_lens):data0(data0),data1(data1),data_lens(data_lens){
         init();
-        offline();
     }
     ~SOT(){
 
         free_fss_key(myfss);
     }
-    
-    uint32_t fili;
+    std::vector<uint32_t> filis;
+
     void init(){
         get_seed<uint8_t>({"player0", "player1"}, n0, Lambda);
-        for(int i = 0; i < 16; i++) std::cout<< (uint32_t) n0[i] << " ";
         AES_set_encrypt_key(n0, 128, &n_0);
         get_seed<uint8_t>({"player1", "player2"}, n1, Lambda);
-        for(int i = 0; i < 16; i++) std::cout<< (uint32_t) n1[i] << " ";
         AES_set_encrypt_key(n1, 128, &n_1);
         get_seed<uint8_t>({"player2", "player0"}, n2, Lambda);
-        for(int i = 0; i < 16; i++) std::cout<< (uint32_t) n2[i] << " ";
         AES_set_encrypt_key(n2, 128, &n_2);
         if(Config::myconfig->check("player0")){
-            initializeClient(&myfss, logn(N), 2);
+            initializeClient(&myfss, logn(data_lens), 2);
             send_role_mpz(myfss.prime, P2Pchannel::mychnl, {"player1", "player2"});
             send_all({"player1", "player2"}, &myfss,sizeof(Fss)-16);
             send_all({"player1", "player2"}, myfss.aes_keys,sizeof(AES_KEY)*myfss.numKeys);
@@ -54,41 +53,171 @@ class SOT{
 
         
     }
-    void offline(){
-        RAND_bytes(reinterpret_cast<uint8_t*>(&fili), 4);
-        fili %= N;
-        std::cout<<"fili "<<fili<<std::endl;
-        ServerKeyEq k0, k1;
-        generateTreeEq(&myfss, &k0, &k1, fili, 1);
-        send_eq_key(k0, myfss, Config::myconfig->get_suc());
-        send_eq_key(k1, myfss, Config::myconfig->get_pre());
-        recv_eq_key(sk, myfss, Config::myconfig->get_pre());
-        recv_eq_key(gk, myfss, Config::myconfig->get_suc());
-        free_key<ServerKeyEq>(k0);
-        free_key<ServerKeyEq>(k1);
+    void offline(uint32_t times){
+        this->times = times;
+        sks.clear();gks.clear();
+        for(int i = 0; i < times; i ++){
+            uint32_t fili;
+            RAND_bytes(reinterpret_cast<uint8_t*>(&fili), 4);
+            fili %= data_lens;
+            filis.push_back(fili);
+            ServerKeyEq k0, k1;
+            generateTreeEq(&myfss, &k0, &k1, fili, 1);
+            send_eq_key(k0, myfss, Config::myconfig->get_suc());
+            send_eq_key(k1, myfss, Config::myconfig->get_pre());
+            free_key<ServerKeyEq>(k0);
+            free_key<ServerKeyEq>(k1);
+            ServerKeyEq k_0, k_1;
+            recv_eq_key(k_0, myfss, Config::myconfig->get_pre());
+            sks.push_back(k_0);
+            recv_eq_key(k_1, myfss, Config::myconfig->get_suc());
+            gks.push_back(k_1);
+        }
     }
-    uint32_t online(uint32_t idex, uint32_t sid = 0){
-        uint16_t lens = data_lens;
-        uint64_t tmp;
+    void offline_t(uint32_t times){
+        this->times = times;
+        for(int i = 0; i < times; i ++){
+            uint32_t fili;
+            RAND_bytes(reinterpret_cast<uint8_t*>(&fili), 4);
+            fili %= data_lens;
+            filis.push_back(fili);
+            ServerKeyEq k0, k1;
+            generateTreeEq(&myfss, &k0, &k1, fili, 1);
+            send_eq_key(k0, myfss, Config::myconfig->get_suc());
+            send_eq_key(k1, myfss, Config::myconfig->get_pre());
+            free_key<ServerKeyEq>(k0);
+            free_key<ServerKeyEq>(k1);
+        }
+        sks.clear();gks.clear();
+        for(int i = 0; i < times; i ++){
+            ServerKeyEq k0, k1;
+            recv_eq_key(k0, myfss, Config::myconfig->get_pre());
+            sks.push_back(k0);
+            recv_eq_key(k1, myfss, Config::myconfig->get_suc());
+            gks.push_back(k1);
+        
+        }
+        
+    }
+    T online(uint32_t* idex, T * res){
+        uint32_t deltas[times][9], delta[times][3];
+        uint32_t recv_ptr = 0;
+
+        P2Pchannel::mychnl->set_flush(false);
+        for(int t = 0; t < times; t++){
+            for(int i = 0; i < 3; i ++){
+                uint8_t tmmm[16],tmp[16] = {0};
+                tmp[4] = i;
+                memcpy(tmp, &t, 4);
+                uint32_t w0, w1;
+                if(Config::myconfig->check("player0")){
+                    prf(tmmm, tmp, 16, &n_0, 1);
+                    memcpy(&w0, tmmm, sizeof(uint32_t));
+                    prf(tmmm, tmp, 16, &n_2, 1);
+                    memcpy(&w1, tmmm, sizeof(uint32_t));
+                }
+                if(Config::myconfig->check("player1")){
+                    prf(tmmm, tmp, 16, &n_1, 1);
+                    memcpy(&w0, tmmm, sizeof(uint32_t));
+                    prf(tmmm, tmp, 16, &n_0, 1);
+                    memcpy(&w1, tmmm, sizeof(uint32_t));
+                }
+                if(Config::myconfig->check("player2")){
+                    prf(tmmm, tmp, 16, &n_2, 1);
+                    memcpy(&w0, tmmm, sizeof(uint32_t));
+                    prf(tmmm, tmp, 16, &n_1, 1);
+                    memcpy(&w1, tmmm, sizeof(uint32_t));
+                }
+                w0 %= data_lens;w1 %= data_lens;
+                deltas[t][i*3 + Config::myconfig->get_idex()] = (idex[t]  + data_lens - w0 + w1) % data_lens;
+                if(Config::myconfig->get_idex() == i) deltas[t][i*3 + Config::myconfig->get_idex()] = (deltas[t][i*3 + Config::myconfig->get_idex()] + data_lens - filis[t]) % data_lens;
+            }
+            /*
+            send delta_j, delta_{j+1} to S_{j+2} 
+            */
+            std::cout<<t<<std::endl;
+            P2Pchannel::mychnl->send_data_to(Config::myconfig->get_pre(), &deltas[t][Config::myconfig->get_idex() * 3 + Config::myconfig->get_idex()], sizeof(uint32_t));
+            P2Pchannel::mychnl->send_data_to(Config::myconfig->get_pre(), &deltas[t][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_idex()], sizeof(uint32_t));
+            P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &deltas[t][Config::myconfig->get_idex() * 3 + Config::myconfig->get_idex()], sizeof(uint32_t));
+            P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &deltas[t][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_idex()], sizeof(uint32_t));
+
+            if(t%round_size == 0){
+                for(int s = recv_ptr; s < t; s ++){
+                    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[s][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_suc_idex()], sizeof(uint32_t));
+                    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[s][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_suc_idex()], sizeof(uint32_t));
+                    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[s][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_pre_idex()], sizeof(uint32_t));
+                    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[s][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_pre_idex()], sizeof(uint32_t));
+                }
+                recv_ptr = t;
+            }
+        }
+        for(int t = recv_ptr; t < times; t++){
+            P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[t][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_suc_idex()], sizeof(uint32_t));
+            P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[t][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_suc_idex()], sizeof(uint32_t));
+            P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[t][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_pre_idex()], sizeof(uint32_t));
+            P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[t][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_pre_idex()], sizeof(uint32_t));
+            
+        }
+        P2Pchannel::mychnl->set_flush(true);
+        Timer::record("evl");
+        for(int t = 0; t < times; t++){
+            /*recv*/
+            for(int i = 0; i < 3; i ++){
+                if(Config::myconfig->get_idex() != i){
+                    /*set delta_k = */
+                    delta[t][i] = (deltas[t][i * 3 + 0] + deltas[t][i * 3 + 1] + deltas[t][i * 3 + 2] + data_lens) % data_lens;
+                }
+            }
+            mpz_class ans_list[data_lens];
+            T ans;
+            memset(&ans, 0, sizeof(T));
+            evaluateEq(&myfss, &gks[t], ans_list, data_lens);
+            free_key<ServerKeyEq>(gks[t]);
+            for(uint32_t i = 0; i < data_lens; i++){
+                ans += - data0[( i + delta[t][Config::myconfig->get_suc_idex()] + data_lens )% data_lens] * mpz_get_ui(ans_list[i].get_mpz_t());
+            }
+            evaluateEq(&myfss, &sks[t], ans_list, data_lens);
+
+            free_key<ServerKeyEq>(sks[t]);
+            for(uint32_t i = 0; i < data_lens; i++){
+                ans += data1[( i + delta[t][Config::myconfig->get_pre_idex()] + data_lens )% data_lens] * mpz_get_ui(ans_list[i].get_mpz_t());
+            }
+            res[t] = ans;
+            
+        }
+        Timer::stop("evl");
+        return res[0];
+    }
+    T online(uint32_t idex, uint32_t t = 0){
+        
+        
         uint32_t deltas[3][3], delta[3];
         for(int i = 0; i < 3; i ++){
-            tmp = sid + (uint64_t)i << 32;
-            uint64_t w0, w1;
+            uint8_t tmmm[16],tmp[16] = {0};
+            tmp[4] = i;
+            memcpy(tmp, &t, 4);
+            uint32_t w0, w1;
             if(Config::myconfig->check("player0")){
-                prf(reinterpret_cast<uint8_t*>(&w0), reinterpret_cast<uint8_t*>(&tmp), 8, &n_0, 1);
-                prf(reinterpret_cast<uint8_t*>(&w1), reinterpret_cast<uint8_t*>(&tmp), 8, &n_2, 1);
+                prf(tmmm, tmp, 16, &n_0, 1);
+                memcpy(&w0, tmmm, sizeof(uint32_t));
+                prf(tmmm, tmp, 16, &n_2, 1);
+                memcpy(&w1, tmmm, sizeof(uint32_t));
             }
             if(Config::myconfig->check("player1")){
-                prf(reinterpret_cast<uint8_t*>(&w0), reinterpret_cast<uint8_t*>(&tmp), 8, &n_1, 1);
-                prf(reinterpret_cast<uint8_t*>(&w1), reinterpret_cast<uint8_t*>(&tmp), 8, &n_0, 1);
+                prf(tmmm, tmp, 16, &n_1, 1);
+                memcpy(&w0, tmmm, sizeof(uint32_t));
+                prf(tmmm, tmp, 16, &n_0, 1);
+                memcpy(&w1, tmmm, sizeof(uint32_t));
             }
             if(Config::myconfig->check("player2")){
-                prf(reinterpret_cast<uint8_t*>(&w0), reinterpret_cast<uint8_t*>(&tmp), 8, &n_2, 1);
-                prf(reinterpret_cast<uint8_t*>(&w1), reinterpret_cast<uint8_t*>(&tmp), 8, &n_1, 1);
+                prf(tmmm, tmp, 16, &n_2, 1);
+                memcpy(&w0, tmmm, sizeof(uint32_t));
+                prf(tmmm, tmp, 16, &n_1, 1);
+                memcpy(&w1, tmmm, sizeof(uint32_t));
             }
-            
-            deltas[i][Config::myconfig->get_idex()] = (idex  + N - w0 + w1) % N;
-            if(Config::myconfig->get_idex() == i) deltas[i][Config::myconfig->get_idex()] = (deltas[i][Config::myconfig->get_idex()] + N - fili) % N;
+            w0 %= data_lens;w1 %= data_lens;
+            deltas[i][Config::myconfig->get_idex()] = (idex  + data_lens - w0 + w1) % data_lens;
+            if(Config::myconfig->get_idex() == i) deltas[i][Config::myconfig->get_idex()] = (deltas[i][Config::myconfig->get_idex()] + data_lens - filis[t]) % data_lens;
         }
         /*
         send delta_j, delta_{j+1} to S_{j+2} 
@@ -107,22 +236,27 @@ class SOT{
         for(int i = 0; i < 3; i ++){
             if(Config::myconfig->get_idex() != i){
                 /*set delta_k = */
-                delta[i] = (deltas[i][0] + deltas[i][1] + deltas[i][2] + N) % N;
+                delta[i] = (deltas[i][0] + deltas[i][1] + deltas[i][2] + data_lens) % data_lens;
             }
         }
-        mpz_class ans_list[N];
-        uint32_t ans = 0;
-        evaluateEq(&myfss, &gk, ans_list, N);
+        mpz_class ans_list[data_lens];
+        T ans;
+        memset(&ans, 0, sizeof(T));
+        evaluateEq(&myfss, &gks[t], ans_list, data_lens);
         
-        free_key<ServerKeyEq>(gk);
-        for(uint32_t i = 0; i < N; i++){
-            ans += - data0[( i + delta[Config::myconfig->get_suc_idex()] + N )% N] * mpz_get_ui(ans_list[i].get_mpz_t());
+        free_key<ServerKeyEq>(gks[t]);
+        //std::cout<<"freee \n";
+        for(uint32_t i = 0; i < data_lens; i++){
+            ans -= data0[( i + delta[Config::myconfig->get_suc_idex()])% data_lens] * mpz_get_ui(ans_list[i].get_mpz_t());
+            //ans.t -= data0[( i + delta[Config::myconfig->get_suc_idex()])% data_lens].t * mpz_get_ui(ans_list[i].get_mpz_t());
         }
-        evaluateEq(&myfss, &sk, ans_list, N);
+        evaluateEq(&myfss, &sks[t], ans_list, data_lens);
         
-        free_key<ServerKeyEq>(sk);
-        for(uint32_t i = 0; i < N; i++){
-            ans += data1[( i + delta[Config::myconfig->get_pre_idex()] + N )% N] * mpz_get_ui(ans_list[i].get_mpz_t());
+        free_key<ServerKeyEq>(sks[t]);
+        //std::cout<<"freee \n";
+        for(uint32_t i = 0; i < data_lens; i++){
+            ans += data1[( i + delta[Config::myconfig->get_pre_idex()])% data_lens] * mpz_get_ui(ans_list[i].get_mpz_t());
+            //ans.t += data1[( i + delta[Config::myconfig->get_pre_idex()])% data_lens].t * mpz_get_ui(ans_list[i].get_mpz_t());
         }
         return ans;
     }

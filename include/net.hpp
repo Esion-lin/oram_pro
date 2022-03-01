@@ -22,8 +22,8 @@ using std::string;
 
 #include "easylogging++.h"
 namespace net {
-const static int NETWORK_BUFFER_SIZE2 = 1024*32;
-const static int NETWORK_BUFFER_SIZE = 1024*1024;
+const static int NETWORK_BUFFER_SIZE2 = 1024*128;
+const static int NETWORK_BUFFER_SIZE = 128*1024*1024;
 
 
 
@@ -120,6 +120,7 @@ class RecverSubChannel : public SubChannel { public:
 		int sent = 0;
 		while (sent < len) {
 			int res = fread(sent + (char *)data, 1, len - sent, stream);
+
 			if (res >= 0)
 				sent += res;
 			else
@@ -259,7 +260,7 @@ class P2Pchannel{
 	
 	std::string st;
     public:
-	bool is_flush = false;
+	bool is_flush = true;
 	static P2Pchannel* mychnl;
     P2Pchannel(std::map<std::string, Player> pmap, std::string user){
 		st = user;
@@ -274,24 +275,22 @@ class P2Pchannel{
 		}
 		LOG(INFO) << "P2Pchannel construction done"<<std::endl;
 	}
+	void set_flush(bool flush_t){
+		is_flush = flush_t;
+
+	}
 	void send_data_to(std::string player, const void* data, int len){
 		//if (FSM == 1) {
 			
 		//}
 		send_len += len;
 		subio[player]->send_data_internal(data, len);
-		if(!is_flush)
-			flush_all();
-		FSM = 2;
+		if(is_flush) flush_all();
 	}
 	void recv_data_from(std::string player, void* data, int len){
-		//if (FSM == 2) {
-			
-		//}
 		subio[player]->recv_data_internal(data, len);
-		if(!is_flush)
-			flush_all();
-		FSM = 1;
+		if(is_flush) flush_all();
+		
 	}
 	void flush_player(std::string player) {
 		subio[player]->flush();

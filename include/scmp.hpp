@@ -199,6 +199,7 @@ class Compare{
             }
         }
     }
+   
     void msb_diag_off(uint32_t len, int msb_len = 33, bool if_reduce = false){
         /*
         if_reduce:
@@ -423,6 +424,7 @@ class Compare{
         free(tmp);
 
     }
+    
     template<typename T>
     void msb(T* R,  uint32_t len, uint32_t* flags, int msb_len = 33, bool if_reduce = false){
         if(st == "aid"){
@@ -523,6 +525,47 @@ class Compare{
         }
         free(tmp);
 
+    }
+    template<typename T>
+    void msb_2_3(T* R,  uint32_t len, uint32_t* flags, uint64_t * tmp_ptr, int msb_len = 33, int bias = 0, bool if_reduce = false){
+        if(st == "aid"){
+            
+            return;
+        }
+        uint64_t *tmp = (uint64_t*)malloc(len * sizeof(uint64_t)); 
+        fourpc_reveal_2<uint64_t>(tmp_ptr, tmp, len, {"player0","player1","player2","player3"}, st, p2pchnl, 
+                    [=](uint64_t a, uint64_t b)->uint64_t{ return (a + b) % ((uint64_t)1<<msb_len);});
+        for(int i = 0; i < len; i ++){
+            
+            if(st == "player1"|| st == "player3"){
+                if(if_reduce){
+                    free_key<ServerKeyLt>(mhelp[bias + i]);
+                }
+            }else{
+                flags[i] = (uint32_t)evaluateLt(&cmpkey_33, &get<0>(mks[bias + i]), tmp[i]);
+                if(st == "player0") flags[i] = (uint32_t)1 - flags[i];
+                if(if_reduce){
+                    uint32_t temp = (uint32_t)evaluateLt(&cmpkey_33, &mhelp[bias + i], tmp[i]);
+                    if(st == "player2") temp = - temp;
+                    flags[i] += temp;
+                    free_key<ServerKeyLt>(mhelp[bias + i]);
+                }
+                if(st == "player0") P2Pchannel::mychnl->send_data_to("player1", flags, len*sizeof(uint32_t));
+                if(st == "player2") P2Pchannel::mychnl->send_data_to("player3", flags, len*sizeof(uint32_t));
+            }
+            free_key<ServerKeyLt>(get<0>(mks[bias + i]));
+        }
+        free(tmp);
+
+    }
+    template<typename T>
+    void msb_3_3(T* R,  uint32_t len, uint32_t* flags, uint64_t * tmp_ptr, int msb_len = 33, int bias = 0, bool if_reduce = false){
+        if(st == "aid"){
+            
+            return;
+        }
+        if(st == "player1") P2Pchannel::mychnl->recv_data_from("player0", flags, len*sizeof(uint32_t));
+        if(st == "player3") P2Pchannel::mychnl->recv_data_from("player2", flags, len*sizeof(uint32_t));
     }
     template<typename T>
     void msb_diag_2(T* R,  uint32_t len, uint32_t* flags, uint64_t * tmp_ptr, int msb_len = 33, int bias = 0, bool if_reduce = false){
@@ -942,7 +985,7 @@ class Thr_pc_ic_id{
     ~Thr_pc_ic_id(){
         free_fss_key(fkey);
     }
-    void twopc_ic_off(uint32_t len, T p, T q, T mod, T r_in, T value = 1){
+    void twopc_ic_off(uint32_t len, T p, T q, T mod, T* r_in, T value = 1){
         this->p = p;
         this->q = q;
         this->mod = mod;
@@ -953,16 +996,16 @@ class Thr_pc_ic_id{
             for(int i = 0; i < len; i++){
                 T gamma, q_pl, alpa_p, alpa_q, alpa_qpl, z, z0, z1;
                 if(mod != 0){
-                    gamma = (r_in + mod - 1) % mod;
+                    gamma = (r_in[i] + mod - 1) % mod;
                     generateTreeLt(&fkey, &lt_00, &lt_01, gamma, value);
-                    q_pl = (q + 1) % mod; alpa_p = (p + r_in) % mod; alpa_q = (q + r_in) % mod; alpa_qpl = (q + 1 + r_in) % mod;
+                    q_pl = (q + 1) % mod; alpa_p = (p + r_in[i]) % mod; alpa_q = (q + r_in[i]) % mod; alpa_qpl = (q + 1 + r_in[i]) % mod;
                     z = (alpa_p>alpa_q) - (alpa_p > p) + (alpa_qpl > q_pl) + (alpa_q == mod - 1);
                     z0 = rand() % mod; z1 = (z + mod - z0) % mod;
                 }
                 else{
-                    gamma = (r_in - 1);
+                    gamma = (r_in[i] - 1);
                     generateTreeLt(&fkey, &lt_00, &lt_01, gamma, value);
-                    q_pl = (q + 1) ; alpa_p = (p + r_in) ; alpa_q = (q + r_in) ; alpa_qpl = (q + 1 + r_in);
+                    q_pl = (q + 1) ; alpa_p = (p + r_in[i]) ; alpa_q = (q + r_in[i]) ; alpa_qpl = (q + 1 + r_in[i]);
                     z = (alpa_p>alpa_q) - (alpa_p > p) + (alpa_qpl > q_pl) + (alpa_q == mod - 1);
                     z0 = rand() ; z1 = (z  - z0) ;
                 }
@@ -975,6 +1018,7 @@ class Thr_pc_ic_id{
                 send_lt_key(lt_01, fkey, Config::myconfig->get_pre());
                 P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &z0, sizeof(T));
                 P2Pchannel::mychnl->send_data_to(Config::myconfig->get_pre(), &z1, sizeof(T));
+                P2Pchannel::mychnl->flush_all();
                 free_key<ServerKeyLt>(lt_00);free_key<ServerKeyLt>(lt_01);
             }
         }else{
@@ -986,7 +1030,6 @@ class Thr_pc_ic_id{
                 P2Pchannel::mychnl->recv_data_from(owner, &delta, sizeof(T));
                 msb_tuple tmp = {lt_k1,  delta};
                 mks.push_back(tmp);
-                std::cout<<"done\n"<<std::endl;
             }
         }
     }

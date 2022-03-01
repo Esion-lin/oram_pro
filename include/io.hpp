@@ -20,7 +20,6 @@ void add_share(std::string owner, std::set<std::string> holders, T* data, uint32
     /*该方法可能会改写data*/
     bool incl = false;
     if(Config::myconfig->check(owner)){
-        
         T mydata[lens];
         for(auto player:holders){
             if(!Config::myconfig->check(player)){
@@ -84,8 +83,8 @@ void add_reveal(std::set<std::string> owner, std::set<std::string> holders, T* d
 }
 template<typename T>
 void deliver(T* data, T* newdata, uint32_t lens){
-    P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), data, lens);
-    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), newdata, lens);
+    P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), data, lens*sizeof(T));
+    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), newdata, lens*sizeof(T));
 }
 template<typename T>
 void replicated_share(std::string owner, std::set<std::string> holders, T* data1, T* data2, uint32_t lens,

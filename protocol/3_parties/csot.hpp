@@ -22,13 +22,10 @@ class CSOT{
     }
     void init(){
         get_seed<uint8_t>({"player0", "player1"}, n0, Lambda);
-        for(int i = 0; i < 16; i++) std::cout<< (uint32_t) n0[i] << " ";
         AES_set_encrypt_key(n0, 128, &n_0);
         get_seed<uint8_t>({"player1", "player2"}, n1, Lambda);
-        for(int i = 0; i < 16; i++) std::cout<< (uint32_t) n1[i] << " ";
         AES_set_encrypt_key(n1, 128, &n_1);
         get_seed<uint8_t>({"player2", "player0"}, n2, Lambda);
-        for(int i = 0; i < 16; i++) std::cout<< (uint32_t) n2[i] << " ";
         AES_set_encrypt_key(n2, 128, &n_2);
         ic[0] = new Thr_pc_ic_id<T>(L, "player0");
         ic[1] = new Thr_pc_ic_id<T>(L, "player1");
@@ -38,12 +35,12 @@ class CSOT{
         RAND_bytes(reinterpret_cast<uint8_t*>(&rou), sizeof(T));
         tao = (T)1 << (L - 1) - 1;
         for(int i = 0; i < 3; i++){
-            ic[i]->twopc_ic_off(len, 0, tao, ((uint32_t)1<<L), rou);
+            ic[i]->twopc_ic_off(len, 0, tao, ((uint32_t)1<<L), &rou);
         }
 
     }
-    template<typename R>
-    R online(R *block, T *m, uint32_t sid = 0){
+    template<typename R = uint32_t>
+    R online(R *block, T *m, uint32_t sid = 0, uint32_t mod = 0){
         /*
         R: overwrite mod add
         */
@@ -77,7 +74,6 @@ class CSOT{
             }
 
             deltas[i][Config::myconfig->get_idex()] = (m[1] - m[0] - w0 + w1);
-            std::cout<<w0<<" "<<w1<<std::endl;
         }
         deltas[Config::myconfig->get_idex()][Config::myconfig->get_idex()] = deltas[Config::myconfig->get_idex()][Config::myconfig->get_idex()] + rou;
         R blocks[3][2];
@@ -107,9 +103,14 @@ class CSOT{
                 prf(tmmm, tmp, len_R, &n_1, 1);
                 memcpy(&zeta0_1, tmmm, sizeof(R));
             }
-            
-            blocks[Config::myconfig->get_idex()][i] = block[i] + zeta0_0 - zeta0_1;
-            std::cout<<zeta0_0<<" "<<zeta0_1<<std::endl;
+            if(mod != 0){
+                zeta0_1 %= mod;
+                zeta0_0 %= mod;
+                blocks[Config::myconfig->get_idex()][i] = (block[i] + zeta0_0 + mod - zeta0_1) % mod;
+            }
+            else{
+                blocks[Config::myconfig->get_idex()][i] = block[i] + zeta0_0 - zeta0_1;
+            }
         }   
         P2Pchannel::mychnl->send_data_to(Config::myconfig->get_pre(), &deltas[Config::myconfig->get_idex()][Config::myconfig->get_idex()], sizeof(T));
         P2Pchannel::mychnl->send_data_to(Config::myconfig->get_pre(), &deltas[Config::myconfig->get_suc_idex()][Config::myconfig->get_idex()], sizeof(T));
@@ -136,13 +137,21 @@ class CSOT{
         uint32_t beta[2];
         ic[Config::myconfig->get_suc_idex()]->twopc_ic(&delta[Config::myconfig->get_suc_idex()], 1, &beta[1]);
         ic[Config::myconfig->get_pre_idex()]->twopc_ic(&delta[Config::myconfig->get_pre_idex()], 1, &beta[0]);
-        std::cout<<beta[1] << " " << beta[0] <<" "<<delta[Config::myconfig->get_suc_idex()]<<" "<<delta[Config::myconfig->get_pre_idex()]<<" "<< ic[Config::myconfig->get_suc_idex()]->owner<<" "<<ic[Config::myconfig->get_pre_idex()]->owner<<std::endl;  
         R res = blocks[Config::myconfig->get_idex()][1];
         for(int q = 0; q < 2; q++){
-            for(int k = 0; k < 2; k++){
-                res = res + (-1 + 2*(1-k)) * blocks[(q + Config::myconfig->get_idex()) % 3][k]*beta[1 - q];
+            for(int k = 0; k < 2; k++){ 
+                
+                if(mod != 0){
+                    if(k == 0)
+                        res = (res + blocks[(q + Config::myconfig->get_idex()) % 3][k]*(beta[1 - q]%mod)) % mod;
+                    else
+                        res = (res + mod - (blocks[(q + Config::myconfig->get_idex()) % 3][k]*(beta[1 - q]%mod) % mod)) % mod;
+                }else{
+                    res = res + (-1 + 2*(1-k)) * blocks[(q + Config::myconfig->get_idex()) % 3][k]*beta[1 - q];
+                }
             }
         }
+        
         return res;
     }
 

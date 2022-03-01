@@ -48,7 +48,7 @@ class Timer{
         for(auto ele:times){
             printf("%s: %lf seconds\n", ele.first.c_str(), ele.second);
             if(ele.first == "init") outFile << ele.second << ',';
-            else outFile << ele.second *10 << ',';
+            else outFile << ele.second * 1000 << ',';
         }
         outFile<<std::endl;
     }

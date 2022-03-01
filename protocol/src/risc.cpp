@@ -354,6 +354,9 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
         
     }
     read_op->roundend(read_eq);
+    #ifdef THREE_ROUND_MSB
+    mul_op->roundexp();
+    #endif
     /*regulate*/
     Ri_rep = res[STORE];
     res[COMPE] = res[STORE];

@@ -10,6 +10,8 @@
 std::map<std::string, double> Timer::times;
 std::map<std::string, struct timeval> Timer::ptrs;
 std::string Timer::now_name;
+Config* Config::myconfig;
+P2Pchannel* P2Pchannel::mychnl;
 INITIALIZE_EASYLOGGINGPP
 int main(int argc, char** argv){
     ifstream infile("ins.ins");
@@ -63,18 +65,18 @@ int main(int argc, char** argv){
 
 
 
-    Config* cfg = new Config("./config.json");
-    P2Pchannel* p2pchnl = new P2Pchannel(cfg->Pmap, argv[1]);
-    
+    Config::myconfig = new Config("./config.json");
+    P2Pchannel::mychnl = new P2Pchannel(Config::myconfig->Pmap, argv[1]);
+    Config::myconfig->set_player(argv[1]);
     /**/
     
     Mechine * now_mechine;
     if(st == "aid"){
-        now_mechine = new Mechine(argv[1], p2pchnl, testenv, ins_lens);
+        now_mechine = new Mechine(argv[1], P2Pchannel::mychnl, testenv, ins_lens);
         //std::cout<<m2i(load_T<uint64_t>(now_mechine->myenv.mem, 0))<<std::endl;
     }
     else{
-        now_mechine = new Mechine(argv[1], p2pchnl, ins_lens);
+        now_mechine = new Mechine(argv[1], P2Pchannel::mychnl, ins_lens);
     }
     
     // now_mechine->print_res_flag(1);
@@ -88,7 +90,7 @@ int main(int argc, char** argv){
         if(now_mechine->done) break;
         Timer::stop("load_ins");
         uint32_t re_list[3] = {now_mechine->Ri, now_mechine->Rj, now_mechine->A};
-        fourpc_reveal<uint32_t>(re_list, 3, {"player0"}, st, p2pchnl);
+        fourpc_reveal<uint32_t>(re_list, 3, {"player0"}, st, P2Pchannel::mychnl);
         //if(st == "player0") std::cout<<"Ri "<<re_list[0]<<"; Rj "<<re_list[1]<<"; A "<<re_list[2]<<";\n";
         //std::cout<<"-----------------------test done-------------------\n";
         
@@ -105,7 +107,7 @@ int main(int argc, char** argv){
     
     Timer::test_print();
     std::cout<<"total run ins "<<total_seq<<" "<<Timer::times["run_ins"]/total_seq<<" s per ins"<<std::endl;
-    delete cfg;
-    delete p2pchnl;
+    delete Config::myconfig;
+    delete P2Pchannel::mychnl;
     delete now_mechine;
 }

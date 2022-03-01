@@ -32,6 +32,7 @@ inline mpz_class recv_mpz(P2Pchannel *p2pchnl = P2Pchannel::mychnl, std::string 
     size_t b=0;
     char* datt = (char*) malloc(40);
     mpz_class z;
+    
     p2pchnl->recv_data_from(fplayer, &b, sizeof(size_t));
     p2pchnl->recv_data_from(fplayer, datt, b*sizeof(char));
     mpz_import(z.get_mpz_t(), b, -1, sizeof(char), 0, 0, datt);
@@ -67,14 +68,14 @@ inline void send_role_mpz(mpz_class data, P2Pchannel *p2pchnl = P2Pchannel::mych
 inline void send_fss_key(Fss &key, P2Pchannel *p2pchnl = P2Pchannel::mychnl){
     send_mpz(key.prime, p2pchnl);
     send_all(&key,sizeof(Fss)-16, p2pchnl);
-    send_all(key.aes_keys,sizeof(AES_KEY)*key.numKeys, p2pchnl);
+    send_all(key.aes_keys,sizeof(AES_KEY_FSS)*key.numKeys, p2pchnl);
 }
 inline void recv_fss_key(Fss& key, P2Pchannel *p2pchnl = P2Pchannel::mychnl, std::string st = "aid"){
     mpz_class z = recv_mpz(p2pchnl, st);
     p2pchnl->recv_data_from(st,&key,sizeof(Fss)-16);
     key.prime = z;
-    key.aes_keys = (AES_KEY*) malloc(sizeof(AES_KEY)*key.numKeys);
-    p2pchnl->recv_data_from(st,key.aes_keys,sizeof(AES_KEY)*key.numKeys);
+    key.aes_keys = (AES_KEY_FSS*) malloc(sizeof(AES_KEY_FSS)*key.numKeys);
+    p2pchnl->recv_data_from(st,key.aes_keys,sizeof(AES_KEY_FSS)*key.numKeys);
 }
 inline void send_eq_key(ServerKeyEq& key, Fss &fkey, std::string player, P2Pchannel *p2pchnl = P2Pchannel::mychnl){
     send_mpz(key.w,player, p2pchnl);

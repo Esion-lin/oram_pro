@@ -233,13 +233,27 @@ public:
     }
     void roundend(){
         uint32_t ms_bit;
+        #ifdef THREE_ROUND_MSB
+        msb_ans->msb_2_3<uint32_t>(&res[0], 1, &ms_bit, &buf_ans, 33, 0, true);
+        
+        #else
+        
         msb_ans->msb_2<uint32_t>(&res[0], 1, &ms_bit, &buf_ans, 33, 0, true);
-        
-        
         res[1] += ms_bit;
         flag[1] = flag[0];
+        #endif        
+        
+        
         
     }
+    #ifdef THREE_ROUND_MSB
+    void roundexp(){
+        uint32_t ms_bit;
+        msb_ans->msb_3_3<uint32_t>(&res[0], 1, &ms_bit, &buf_ans, 33, 0, true);
+        res[1] += ms_bit;
+        flag[1] = flag[0];
+    }
+    #endif   
 };
 class Cmp_a_e_ae{
 private:
