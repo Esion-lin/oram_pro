@@ -59,7 +59,7 @@ int main(int argc, char** argv){
     }
     for(int i = PRO_SIZE; i < MEM_LEN; i++){
         testenv.mem[i] = i;
-        if( i < PRO_SIZE + 200) std::cout<<testenv.mem[i]<<" ";
+        
     }
     std::cout<<std::endl;
 
@@ -94,15 +94,17 @@ int main(int argc, char** argv){
         //if(st == "player0") std::cout<<"Ri "<<re_list[0]<<"; Rj "<<re_list[1]<<"; A "<<re_list[2]<<";\n";
         //std::cout<<"-----------------------test done-------------------\n";
         
-        //std::cout<<"-----------------------test run_op-------------------\n";
+        std::cout<<"-----------------------test run_op-------------------\n";
         Timer::record("run_ins");
         now_mechine->run_op();
-        now_mechine->ret_res();
         Timer::stop("run_ins");
+        Timer::record("write_ins");
+        now_mechine->ret_res();
+        Timer::stop("write_ins");
         now_mechine->print_res_flag(8);
         
         //std::cout<<"-----------------------test done-------------------\n";
-        }
+    }
     now_mechine->print_res_flag(14);
     
     Timer::test_print();

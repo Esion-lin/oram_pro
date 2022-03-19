@@ -3,6 +3,7 @@
 #include <iostream>
 #include "operation.h"
 #include "gc_op.h"
+#include "timer.hpp"
 Ins m2i(uint64_t data){
     Ins ans;
     ans.imme = (uint32_t)data;
@@ -151,7 +152,7 @@ void Mechine::run_op(){
     run_op(now_ins, Ri, Rj, A);
 }
 void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
-
+    Timer::record("run_ins_offline");
 	/*
 	 * run all instruct
 	 *get [res] and [flags]
@@ -215,16 +216,19 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     load_op->offline();
     store_op->offline();
     read_op->offline(betas[READ]);
-
+    Timer::stop("run_ins_offline");
     /*for test*/
+    Timer::record("share trans");
     uint32_t new_value[2],old_value[2] = {Rj, A};
     if(st == "player1") p2pchnl->send_data_to("player0", old_value, 2*sizeof(uint32_t));
     else if(st == "player3") p2pchnl->send_data_to("player2", old_value, 2*sizeof(uint32_t));
     else if(st == "player0") p2pchnl->recv_data_from("player1", old_value, 2*sizeof(uint32_t));
     else if(st == "player2") p2pchnl->recv_data_from("player3", old_value, 2*sizeof(uint32_t));
     bitwise->to_Y("player0", "player2", Rj+old_value[0], A+old_value[1], 32);
+    Timer::stop("share trans");
     /*run*/
     /*round-1*/
+    Timer::record("round1");
     read_flag->round1();
     eq_cmp->round1();
     ae_cmp->round1();
@@ -246,7 +250,9 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
         bitwise->runs("player0", "player2", gcfiles, 32);
     
     read_op->round1();
+    Timer::stop("round1");
     /*round-2*/
+    Timer::record("round2");
     read_flag->round2();
     eq_cmp->round2();
     ae_cmp->round2();
@@ -270,6 +276,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
         bitwise->to_As("player0", "player2",32);
     }
     read_op->round2();
+    Timer::stop("round2");
     /*round-3*/
     read_flag->round3();
     eq_cmp->round3();
@@ -288,6 +295,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     jump_op->round3(&(myenv.pc), betas[JMP]);
     cjump_op->round3(&(myenv.pc), betas[CJMP]);
     cnjump_op->round3(&(myenv.pc), betas[CNJMP]);
+   
     myenv.pc += jump_op->j_pc + cjump_op->j_pc + cnjump_op->j_pc;
     if(st == "player0"){
         p2pchnl->send_data_to("player1", &bitwise->r, sizeof(uint64_t));
@@ -319,6 +327,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
 #endif
     }
     read_op->round3(read_eq);
+    
     /*round-end*/
     read_flag->roundend();
     eq_cmp->roundend();
@@ -354,9 +363,12 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
         
     }
     read_op->roundend(read_eq);
+    
     #ifdef THREE_ROUND_MSB
     mul_op->roundexp();
+    P2Pchannel::mychnl->flush_all();
     #endif
+
     /*regulate*/
     Ri_rep = res[STORE];
     res[COMPE] = res[STORE];

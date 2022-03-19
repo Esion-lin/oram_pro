@@ -78,12 +78,12 @@ int main(int argc, const char** argv) {
     P2Pchannel::mychnl = new P2Pchannel(Config::myconfig->Pmap, st);
     Config::myconfig->set_player(st);
 
-    uint32_t data[data_len], rep[data_len];
+    uint64_t data[data_len], rep[data_len];
     for(int i = 0; i < data_len ;i ++){
         data[i] = i + 2;
     }
-    replicated_share<uint32_t>("player2", {"player0", "player1", "player2"}, data, rep, data_len);
-    uint32_t res;
+    replicated_share<uint64_t>("player2", {"player0", "player1", "player2"}, data, rep, data_len);
+    uint64_t res;
     std::vector<std::string> total_set = {"iris", "wine", "linnerud", "breast", "digits", "diabetes", "boston"};
     uint32_t data_lesns[7] = {4, 7, 3, 12, 47, 10, 13};
     if(data_set != ""){
@@ -91,8 +91,8 @@ int main(int argc, const char** argv) {
             
             for(auto & str:total_set){
                 std::cout<<"dataset "<<str<<std::endl;
-                Dt<uint32_t, Node_el<uint32_t>>*dt = new Dt<uint32_t, Node_el<uint32_t>>("../dt/" + str, data_len, "player2", "player0", "player1");
-                PolyDtEval<uint32_t> *dt_evl = new PolyDtEval<uint32_t>(dt, rep, data, data_len);
+                Dt<uint64_t, Node_el<uint64_t>>*dt = new Dt<uint64_t, Node_el<uint64_t>>("../dt/" + str, data_len, "player2", "player0", "player1");
+                PolyDtEval<uint64_t> *dt_evl = new PolyDtEval<uint64_t>(dt, rep, data, data_len);
                 dt_evl->offline();
                 Timer::record(str);
                 res = dt_evl->online();
@@ -102,12 +102,12 @@ int main(int argc, const char** argv) {
             }
         }else if(data_set == "all" && is_cons){
             
-            uint32_t nodes[7] = {8, 11, 19, 21, 168, 58, 421};
-            uint32_t deeps[7] = {5, 5, 6, 7, 14, 17, 28};
+            uint32_t nodes[7] = {8, 11, 19, 21, 168, 58, 525};
+            uint32_t deeps[7] = {5, 5, 6, 7, 14, 17, 30};
             for(int i = 0; i < 5; i++){
                 std::cout<<"dataset "<<total_set[i]<<std::endl;
-                Dt<uint32_t, Node<uint32_t>> *dt = new Dt<uint32_t, Node<uint32_t>>(nodes[i], deeps[i], data_lesns[i], is_cons, "player2", "player0", "player1");
-                ConstDtEval<uint32_t> *dt_evl = new ConstDtEval<uint32_t>(dt, rep, data, data_lesns[i]);
+                Dt<uint64_t, Node<uint64_t>> *dt = new Dt<uint64_t, Node<uint64_t>>(nodes[i], deeps[i], data_lesns[i], is_cons, "player2", "player0", "player1");
+                ConstDtEval<uint64_t, 64> *dt_evl = new ConstDtEval<uint64_t, 64>(dt, rep, data, data_lesns[i]);
                 std::cout<<"offline start\n";
                 dt_evl->offline();
                 std::cout<<"offline done\n";
@@ -117,26 +117,13 @@ int main(int argc, const char** argv) {
                 delete dt;
                 delete dt_evl;
             }
-            for(int i = 0; i < 7; i++){
-                std::cout<<"dataset "<<total_set[i]<<std::endl;
-                Dt<uint32_t, Node_el<uint32_t>> *dt = new Dt<uint32_t, Node_el<uint32_t>>(nodes[i], deeps[i], data_lesns[i], "player2", "player0", "player1");
-                
-                PolyDtEval<uint32_t> *dt_evl = new PolyDtEval<uint32_t>(dt, rep, data, data_lesns[i]);
-                Timer::record("offline "+total_set[i]);
-                dt_evl->offline();
-                Timer::stop("offline "+total_set[i]);
-                Timer::record("poly "+total_set[i]);
-                res = dt_evl->online();
-                Timer::stop("poly "+total_set[i]);
-                delete dt;
-                delete dt_evl;
-            }
+            
 
         }
         else{
             std::cout<<"dataset "<<data_set<<std::endl;
-            Dt<uint32_t, Node_el<uint32_t>>*dt = new Dt<uint32_t, Node_el<uint32_t>>("../dt/" + data_set, data_len, "player2", "player0", "player1");
-            PolyDtEval<uint32_t> *dt_evl = new PolyDtEval<uint32_t>(dt, rep, data, data_len);
+            Dt<uint64_t, Node_el<uint64_t>>*dt = new Dt<uint64_t, Node_el<uint64_t>>("../dt/" + data_set, data_len, "player2", "player0", "player1");
+            PolyDtEval<uint64_t> *dt_evl = new PolyDtEval<uint64_t>(dt, rep, data, data_len);
             dt_evl->offline();
             Timer::record("poly evl");
             res = dt_evl->online();
@@ -148,8 +135,8 @@ int main(int argc, const char** argv) {
     }else{
         if(is_cons){
             std::cout<<"eval "<<deep<<" const dt"<<std::endl;
-            Dt<uint32_t, Node<uint32_t>> *dt = new Dt<uint32_t, Node<uint32_t>>(node_size, deep, data_len, is_cons, "player2", "player0", "player1");
-            ConstDtEval<uint32_t> *dt_evl = new ConstDtEval<uint32_t>(dt, rep, data, data_len);
+            Dt<uint64_t, Node<uint64_t>> *dt = new Dt<uint64_t, Node<uint64_t>>(node_size, deep, data_len, is_cons, "player2", "player0", "player1");
+            ConstDtEval<uint64_t> *dt_evl = new ConstDtEval<uint64_t>(dt, rep, data, data_len);
             
             dt_evl->offline();
             Timer::record("const evl");
@@ -159,8 +146,8 @@ int main(int argc, const char** argv) {
             delete dt_evl;
         }else{
             std::cout<<"eval "<<deep<<" poly dt"<<std::endl;
-            Dt<uint32_t, Node_el<uint32_t>>*dt = new Dt<uint32_t, Node_el<uint32_t>>(node_size, deep, data_len, "player2", "player0", "player1");   
-            PolyDtEval<uint32_t> *dt_evl = new PolyDtEval<uint32_t>(dt, rep, data, data_len);
+            Dt<uint64_t, Node_el<uint64_t>>*dt = new Dt<uint64_t, Node_el<uint64_t>>(node_size, deep, data_len, "player2", "player0", "player1");   
+            PolyDtEval<uint64_t> *dt_evl = new PolyDtEval<uint64_t>(dt, rep, data, data_len);
             Timer::record("poly evl");
             res = dt_evl->online();
             Timer::stop("poly evl");

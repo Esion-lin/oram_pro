@@ -53,7 +53,7 @@ class SOT{
 
         
     }
-    void offline(uint32_t times){
+    void offline_t(uint32_t times){
         this->times = times;
         sks.clear();gks.clear();
         for(int i = 0; i < times; i ++){
@@ -74,8 +74,9 @@ class SOT{
             gks.push_back(k_1);
         }
     }
-    void offline_t(uint32_t times){
+    void offline(uint32_t times){
         this->times = times;
+        P2Pchannel::mychnl->set_flush(false);
         for(int i = 0; i < times; i ++){
             uint32_t fili;
             RAND_bytes(reinterpret_cast<uint8_t*>(&fili), 4);
@@ -89,6 +90,7 @@ class SOT{
             free_key<ServerKeyEq>(k1);
         }
         sks.clear();gks.clear();
+        P2Pchannel::mychnl->flush_all();
         for(int i = 0; i < times; i ++){
             ServerKeyEq k0, k1;
             recv_eq_key(k0, myfss, Config::myconfig->get_pre());
@@ -97,6 +99,8 @@ class SOT{
             gks.push_back(k1);
         
         }
+        P2Pchannel::mychnl->flush_all();
+        P2Pchannel::mychnl->set_flush(true);
         
     }
     T online(uint32_t* idex, T * res){
@@ -135,33 +139,35 @@ class SOT{
             /*
             send delta_j, delta_{j+1} to S_{j+2} 
             */
-            std::cout<<t<<std::endl;
             P2Pchannel::mychnl->send_data_to(Config::myconfig->get_pre(), &deltas[t][Config::myconfig->get_idex() * 3 + Config::myconfig->get_idex()], sizeof(uint32_t));
             P2Pchannel::mychnl->send_data_to(Config::myconfig->get_pre(), &deltas[t][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_idex()], sizeof(uint32_t));
             P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &deltas[t][Config::myconfig->get_idex() * 3 + Config::myconfig->get_idex()], sizeof(uint32_t));
             P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &deltas[t][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_idex()], sizeof(uint32_t));
-
-            if(t%round_size == 0){
-                for(int s = recv_ptr; s < t; s ++){
-                    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[s][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_suc_idex()], sizeof(uint32_t));
-                    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[s][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_suc_idex()], sizeof(uint32_t));
-                    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[s][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_pre_idex()], sizeof(uint32_t));
-                    P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[s][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_pre_idex()], sizeof(uint32_t));
-                }
-                recv_ptr = t;
-            }
+            
+            // if(t%round_size == 0){
+            //     P2Pchannel::mychnl->flush_all();
+            //     for(int s = recv_ptr; s < t; s ++){
+            //         P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[s][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_suc_idex()], sizeof(uint32_t));
+            //         P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[s][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_suc_idex()], sizeof(uint32_t));
+            //         P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[s][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_pre_idex()], sizeof(uint32_t));
+            //         P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[s][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_pre_idex()], sizeof(uint32_t));
+            //     }
+            //     recv_ptr = t;
+            // }
         }
-        for(int t = recv_ptr; t < times; t++){
+        // for(int t = recv_ptr; t < times; t++){
+            
+        // }
+        P2Pchannel::mychnl->flush_all();
+        
+        for(int t = 0; t < times; t++){
+            /*recv*/
+            
             P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[t][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_suc_idex()], sizeof(uint32_t));
             P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[t][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_suc_idex()], sizeof(uint32_t));
             P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[t][Config::myconfig->get_pre_idex() * 3 + Config::myconfig->get_pre_idex()], sizeof(uint32_t));
             P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[t][Config::myconfig->get_suc_idex() * 3 + Config::myconfig->get_pre_idex()], sizeof(uint32_t));
             
-        }
-        P2Pchannel::mychnl->set_flush(true);
-        Timer::record("evl");
-        for(int t = 0; t < times; t++){
-            /*recv*/
             for(int i = 0; i < 3; i ++){
                 if(Config::myconfig->get_idex() != i){
                     /*set delta_k = */
@@ -185,7 +191,7 @@ class SOT{
             res[t] = ans;
             
         }
-        Timer::stop("evl");
+        P2Pchannel::mychnl->set_flush(true);
         return res[0];
     }
     T online(uint32_t idex, uint32_t t = 0){
@@ -227,6 +233,80 @@ class SOT{
         P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &deltas[Config::myconfig->get_idex()][Config::myconfig->get_idex()], sizeof(uint32_t));
         P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &deltas[Config::myconfig->get_pre_idex()][Config::myconfig->get_idex()], sizeof(uint32_t));
 
+        /*recv*/
+        P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[Config::myconfig->get_suc_idex()][Config::myconfig->get_suc_idex()], sizeof(uint32_t));
+        P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[Config::myconfig->get_pre_idex()][Config::myconfig->get_suc_idex()], sizeof(uint32_t));
+        P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[Config::myconfig->get_pre_idex()][Config::myconfig->get_pre_idex()], sizeof(uint32_t));
+        P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_pre(), &deltas[Config::myconfig->get_suc_idex()][Config::myconfig->get_pre_idex()], sizeof(uint32_t));
+        
+        for(int i = 0; i < 3; i ++){
+            if(Config::myconfig->get_idex() != i){
+                /*set delta_k = */
+                delta[i] = (deltas[i][0] + deltas[i][1] + deltas[i][2] + data_lens) % data_lens;
+            }
+        }
+        mpz_class ans_list[data_lens];
+        T ans;
+        memset(&ans, 0, sizeof(T));
+        evaluateEq(&myfss, &gks[t], ans_list, data_lens);
+        
+        free_key<ServerKeyEq>(gks[t]);
+        //std::cout<<"freee \n";
+        for(uint32_t i = 0; i < data_lens; i++){
+            ans -= data0[( i + delta[Config::myconfig->get_suc_idex()])% data_lens] * mpz_get_ui(ans_list[i].get_mpz_t());
+            //ans.t -= data0[( i + delta[Config::myconfig->get_suc_idex()])% data_lens].t * mpz_get_ui(ans_list[i].get_mpz_t());
+        }
+        evaluateEq(&myfss, &sks[t], ans_list, data_lens);
+        
+        free_key<ServerKeyEq>(sks[t]);
+        //std::cout<<"freee \n";
+        for(uint32_t i = 0; i < data_lens; i++){
+            ans += data1[( i + delta[Config::myconfig->get_pre_idex()])% data_lens] * mpz_get_ui(ans_list[i].get_mpz_t());
+            //ans.t += data1[( i + delta[Config::myconfig->get_pre_idex()])% data_lens].t * mpz_get_ui(ans_list[i].get_mpz_t());
+        }
+        return ans;
+    }
+    uint32_t deltas[3][3], delta[3];
+    void online_1(uint32_t idex, uint32_t t = 0){
+        
+        
+        
+        for(int i = 0; i < 3; i ++){
+            uint8_t tmmm[16],tmp[16] = {0};
+            tmp[4] = i;
+            memcpy(tmp, &t, 4);
+            uint32_t w0, w1;
+            if(Config::myconfig->check("player0")){
+                prf(tmmm, tmp, 16, &n_0, 1);
+                memcpy(&w0, tmmm, sizeof(uint32_t));
+                prf(tmmm, tmp, 16, &n_2, 1);
+                memcpy(&w1, tmmm, sizeof(uint32_t));
+            }
+            if(Config::myconfig->check("player1")){
+                prf(tmmm, tmp, 16, &n_1, 1);
+                memcpy(&w0, tmmm, sizeof(uint32_t));
+                prf(tmmm, tmp, 16, &n_0, 1);
+                memcpy(&w1, tmmm, sizeof(uint32_t));
+            }
+            if(Config::myconfig->check("player2")){
+                prf(tmmm, tmp, 16, &n_2, 1);
+                memcpy(&w0, tmmm, sizeof(uint32_t));
+                prf(tmmm, tmp, 16, &n_1, 1);
+                memcpy(&w1, tmmm, sizeof(uint32_t));
+            }
+            w0 %= data_lens;w1 %= data_lens;
+            deltas[i][Config::myconfig->get_idex()] = (idex  + data_lens - w0 + w1) % data_lens;
+            if(Config::myconfig->get_idex() == i) deltas[i][Config::myconfig->get_idex()] = (deltas[i][Config::myconfig->get_idex()] + data_lens - filis[t]) % data_lens;
+        }
+        /*
+        send delta_j, delta_{j+1} to S_{j+2} 
+        */
+        P2Pchannel::mychnl->send_data_to(Config::myconfig->get_pre(), &deltas[Config::myconfig->get_idex()][Config::myconfig->get_idex()], sizeof(uint32_t));
+        P2Pchannel::mychnl->send_data_to(Config::myconfig->get_pre(), &deltas[Config::myconfig->get_suc_idex()][Config::myconfig->get_idex()], sizeof(uint32_t));
+        P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &deltas[Config::myconfig->get_idex()][Config::myconfig->get_idex()], sizeof(uint32_t));
+        P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &deltas[Config::myconfig->get_pre_idex()][Config::myconfig->get_idex()], sizeof(uint32_t));
+    }
+    T online_2(uint32_t idex, uint32_t t = 0){
         /*recv*/
         P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[Config::myconfig->get_suc_idex()][Config::myconfig->get_suc_idex()], sizeof(uint32_t));
         P2Pchannel::mychnl->recv_data_from(Config::myconfig->get_suc(), &deltas[Config::myconfig->get_pre_idex()][Config::myconfig->get_suc_idex()], sizeof(uint32_t));

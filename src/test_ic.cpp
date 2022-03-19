@@ -18,12 +18,16 @@ int main(int argc, char** argv){
     uint32_t tao = (uint32_t)1 << (32 - 1) - 1;
     uint32_t rou = 2691244714;
     ic->twopc_ic_off(1, 0, tao, 0, &rou);
+    /**/
+    Timer::record("one");
+    ic->test_ic_time();
+    Timer::stop("one");
     datas[0] = 2691245311;
-    Timer::record("IC");
-    for(int i = 0; i < 10000; i++){
-        ic->twopc_ic(datas, 1, rep);
-    }
-    Timer::stop("IC");
+    // Timer::record("IC");
+    // for(int i = 0; i < 10000; i++){
+    //     ic->twopc_ic(datas, 1, rep);
+    // }
+    // Timer::stop("IC");
     Timer::test_print();
     std::cout<<rep[0]<<std::endl;
     // for(int i = 0; i < 7; i++){

@@ -969,6 +969,7 @@ class Thr_pc_ic_id{
     std::vector<tuple<ServerKeyLt, T>> mks;
     
     public:
+    bool with_flush = true;
     std::string owner = "aid";
     Thr_pc_ic_id(uint32_t deep, std::string owner = "aid"):owner(owner){
         if(owner != ""){
@@ -989,7 +990,8 @@ class Thr_pc_ic_id{
         this->p = p;
         this->q = q;
         this->mod = mod;
-        
+        if(with_flush)
+            P2Pchannel::mychnl->set_flush(false);
         if(Config::myconfig->check(owner)){
             
             ServerKeyLt lt_00, lt_01;
@@ -1018,9 +1020,9 @@ class Thr_pc_ic_id{
                 send_lt_key(lt_01, fkey, Config::myconfig->get_pre());
                 P2Pchannel::mychnl->send_data_to(Config::myconfig->get_suc(), &z0, sizeof(T));
                 P2Pchannel::mychnl->send_data_to(Config::myconfig->get_pre(), &z1, sizeof(T));
-                P2Pchannel::mychnl->flush_all();
                 free_key<ServerKeyLt>(lt_00);free_key<ServerKeyLt>(lt_01);
             }
+            
         }else{
             
             for(int i = 0; i < len; i++){
@@ -1031,6 +1033,10 @@ class Thr_pc_ic_id{
                 msb_tuple tmp = {lt_k1,  delta};
                 mks.push_back(tmp);
             }
+        }
+        if(with_flush){
+            P2Pchannel::mychnl->flush_all();
+            P2Pchannel::mychnl->set_flush(true);
         }
     }
     void twopc_ic(T* R, uint32_t len, uint32_t* res){
@@ -1055,6 +1061,10 @@ class Thr_pc_ic_id{
              
         }
 
+    }
+    void test_ic_time(){
+        if(!Config::myconfig->check(owner))
+        uint32_t s_p = (uint32_t)evaluateLt(&fkey, &get<0>(mks[0]), 0);
     }
 };
 #endif

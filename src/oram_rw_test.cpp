@@ -10,6 +10,8 @@ uint16_t ele_size = 1;
 std::map<std::string, double> Timer::times;
 std::map<std::string, struct timeval> Timer::ptrs;
 std::string Timer::now_name;
+Config* Config::myconfig;
+P2Pchannel* P2Pchannel::mychnl;
 struct block_t
 {
     uint32_t ptr[max_ele_size];

@@ -321,11 +321,8 @@ class ConstDtEval{
         for(int i = 0; i < dt->node_lens; i++){
             ks[i] = dt->Ps[i].k;
         }
-        Timer::record("ot");
         ot->online(ks, x_ki);
-        Timer::stop("ot");
         
-        Timer::record("prf");
         for(int i = 0; i < dt->node_lens; i++){
             uint8_t tmmm[16],tmp[16] = {0};
             tmp[4] = i;
@@ -352,8 +349,6 @@ class ConstDtEval{
             }
             delta_x[i] = dt->Ps[i].t - x_ki[i] + w0 - w1;
         }
-        Timer::stop("prf");
-        Timer::test_print();
         uint32_t bs[dt->node_lens];
         T res = 0;
         if(Config::myconfig->check("player2")){
@@ -463,8 +458,6 @@ class PolyDtEval{
         ot_n = new SOT<Node_el<T>>(dt->Ps, dt->Ps_rep, dt->node_lens);
         for(int i = 0; i < dt->deep - 1; i++){
             CSOT<T>* csot_x = new CSOT<T>();CSOT<T>* csot_n = new CSOT<T>();
-            csot_x->offline();
-            csot_n->offline();
             csot_xs.push_back(csot_x);
             csot_ns.push_back(csot_n);
         }
@@ -472,6 +465,21 @@ class PolyDtEval{
         ot_x->offline(dt->deep);
         ot_n->offline(dt->deep);
         
+        
+    }
+    void offline(){
+        P2Pchannel::mychnl->set_flush(false);
+        for(int i = 0; i < dt->deep - 1; i++){
+            csot_xs[i]->offline_1();
+            csot_ns[i]->offline_1();
+        }
+        P2Pchannel::mychnl->flush_all();
+        for(int i = 0; i < dt->deep - 1; i++){
+            csot_xs[i]->offline_2();
+            csot_ns[i]->offline_2();
+        }
+        P2Pchannel::mychnl->flush_all();
+        P2Pchannel::mychnl->set_flush(true);
         
     }
     ~PolyDtEval(){
@@ -491,17 +499,26 @@ class PolyDtEval{
         T x_pick;
         Node_el<T> n_pick;
         for(int i = 1; i < dt->deep + 1; i++){
-
-            x_pick = ot_x->online(ki, i - 1);
-            
-            n_pick = ot_n->online(idi, i - 1);
+            P2Pchannel::mychnl->set_flush(false);
+            ot_x->online_1(ki, i - 1);
+            ot_n->online_1(idi, i - 1);
+            P2Pchannel::mychnl->flush_all();
+            x_pick = ot_x->online_2(ki, i - 1);
+            n_pick = ot_n->online_2(idi, i - 1);
+            P2Pchannel::mychnl->flush_all();
             y = y + n_pick.v;
-            if(i >= dt->deep) return y;
+            if(i >= dt->deep) {P2Pchannel::mychnl->set_flush(true);return y;}
             /*fetch id, k*/
             uint32_t block_x[2] = {n_pick.xl,n_pick.xr}, block_n[2] = {n_pick.nl,n_pick.nr};
             T select[2] = {x_pick, n_pick.t};
-            ki = csot_xs[i - 1]->online(block_x, select, 0, data_lens);
-            idi = csot_ns[i - 1]->online(block_n, select, 0, dt->node_lens);
+            csot_xs[i - 1]->online_1(block_x, select, 0, data_lens);
+            csot_ns[i - 1]->online_1(block_n, select, 0, dt->node_lens);
+            P2Pchannel::mychnl->flush_all();
+            
+            ki = csot_xs[i - 1]->online_2(block_x, select, 0, data_lens);
+            idi = csot_ns[i - 1]->online_2(block_n, select, 0, dt->node_lens);
+            P2Pchannel::mychnl->flush_all();
+            P2Pchannel::mychnl->set_flush(true);
         }
     }
 };
