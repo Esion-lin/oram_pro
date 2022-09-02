@@ -117,13 +117,17 @@ Ins Mechine::load_ins(){
     conv->fourpc_zeroshare<uint32_t>(2);
     // Ins test_ins = m2i(load_T<uint64_t>(myenv.mem, 3));
     count_num ++;
-    
+    //TODO: split 0
+    Timer::record("fetch");
     now_ins = m2i(ins_ram->read(myenv.pc, false, mul_ins_single, add_ins));
     // std::cout<<test_ins<<std::endl;
     // std::cout<<now_ins<<std::endl;
+    Timer::stop("fetch");
+    //TODO: split 1
     if(st == "player1" || st == "player3"){
         now_ins = !now_ins;
     }
+    Timer::record("decode");
     /*make flag and imme replicated*/
     WORD arr[2] = {myenv.flag, now_ins.imme};
     conv->fourpc_share_2_replicated_share<uint32_t>(arr, 2);
@@ -136,6 +140,7 @@ Ins Mechine::load_ins(){
     if(st == "player1" || st == "player3"){
         Ri = -Ri;Rj = -Rj;A = -A;
     }
+    
     beta_ram->recover_list(now_ins.optr, betas, false);
     if(st == "player1" || st == "player3" )
         for(int i = 0; i < OPT_SIZE; i++){
@@ -143,12 +148,14 @@ Ins Mechine::load_ins(){
             betas[i] = -betas[i];
         }
     uint32_t stop;
+    Timer::stop("decode");
     twopc_reveal<uint32_t>(&betas[0], &stop, 1, st, p2pchnl);
     if(stop == 1) done = true;
 
     return now_ins;
 }
 void Mechine::run_op(){
+    //TODO: split 2
     run_op(now_ins, Ri, Rj, A);
 }
 void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
@@ -162,6 +169,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     /*cmp*/
     Pratical_OT* ot = new Pratical_OT(p2pchnl, st);
     Bitwise * bitwise = new Bitwise(ot, st, p2pchnl);
+    //bitwise->prepare_ot(64, "player0", "player2");
 #ifdef Total_bitwise
     std::vector<std::string> gcfiles = {"../cir/and_32.txt", "../cir/or_32.txt", "../cir/xor_32.txt", "../cir/not_32.txt", "../cir/left_shift.txt", "../cir/right_shift.txt"};
 #else
@@ -216,7 +224,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     load_op->offline();
     store_op->offline();
     read_op->offline(betas[READ]);
-    Timer::stop("run_ins_offline");
+    
     /*for test*/
     Timer::record("share trans");
     uint32_t new_value[2],old_value[2] = {Rj, A};
@@ -225,11 +233,16 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     else if(st == "player0") p2pchnl->recv_data_from("player1", old_value, 2*sizeof(uint32_t));
     else if(st == "player2") p2pchnl->recv_data_from("player3", old_value, 2*sizeof(uint32_t));
     bitwise->to_Y("player0", "player2", Rj+old_value[0], A+old_value[1], 32);
+    
     Timer::stop("share trans");
+
+    Timer::stop("run_ins_offline");
     /*run*/
     /*round-1*/
-    Timer::record("round1");
+    Timer::record("run_ins_online");
+    P2Pchannel::mychnl->set_flush(false);
     read_flag->round1();
+    load_op->round1();
     eq_cmp->round1();
     ae_cmp->round1();
     add_op->round1();
@@ -241,31 +254,44 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
 #ifdef NEED_CMOV
     cmov_op->round1();
 #endif
-    load_op->round1();
+    
     store_op->round1();
     jump_op->round1(&(myenv.pc));
     cjump_op->round1(&(myenv.pc));
     cnjump_op->round1(&(myenv.pc));
+    
     if(st == "player0")
         bitwise->runs("player0", "player2", gcfiles, 32);
     
     read_op->round1();
-    Timer::stop("round1");
+    P2Pchannel::mychnl->flush_all();
     /*round-2*/
-    Timer::record("round2");
+     
     read_flag->round2();
+
+
+    load_op->round2();
+    
     eq_cmp->round2();
+    
     ae_cmp->round2();
+    
     add_op->round2();
+    
     sub_op->round2();
+    
 #ifdef NEED_MUL
+    
     mul_op->round2();
 #endif
     mov_op->round2();
 #ifdef NEED_CMOV
+
     cmov_op->round2();
+
 #endif
-    load_op->round2();
+
+    
     store_op->round2();
     jump_op->round2(&(myenv.pc), betas[JMP]);
     cjump_op->round2(&(myenv.pc), betas[CJMP]);
@@ -275,10 +301,13 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
     if(st == "player0"){
         bitwise->to_As("player0", "player2",32);
     }
+
     read_op->round2();
-    Timer::stop("round2");
+    P2Pchannel::mychnl->flush_all();
+    
     /*round-3*/
     read_flag->round3();
+    load_op->round3();
     eq_cmp->round3();
     ae_cmp->round3();
     add_op->round3();
@@ -290,7 +319,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
 #ifdef NEED_CMOV
     cmov_op->round3();
 #endif
-    load_op->round3();
+    
     store_op->round3(load_op->res, betas[STORE]);
     jump_op->round3(&(myenv.pc), betas[JMP]);
     cjump_op->round3(&(myenv.pc), betas[CJMP]);
@@ -327,7 +356,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
 #endif
     }
     read_op->round3(read_eq);
-    
+    P2Pchannel::mychnl->flush_all();
     /*round-end*/
     read_flag->roundend();
     eq_cmp->roundend();
@@ -363,12 +392,13 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
         
     }
     read_op->roundend(read_eq);
-    
+    P2Pchannel::mychnl->flush_all();
+    P2Pchannel::mychnl->set_flush(true);
     #ifdef THREE_ROUND_MSB
     mul_op->roundexp();
     P2Pchannel::mychnl->flush_all();
     #endif
-
+    Timer::stop("run_ins_online");
     /*regulate*/
     Ri_rep = res[STORE];
     res[COMPE] = res[STORE];
@@ -400,6 +430,7 @@ void Mechine::run_op(Ins now_ins, uint32_t Ri, uint32_t Rj, uint32_t A){
 #endif
 }
 void Mechine::ret_res(){
+    //TODO: split 3
     now_res = 0;
     now_flag = 0;
     for(int i = 0; i < OPT_SIZE; i++){
@@ -408,7 +439,9 @@ void Mechine::ret_res(){
         
     }
     m_ram->prepare_write(1);
+    //m_ram->write(now_ins.i, now_res, Ri_rep, false);
     m_ram->write_1(now_ins.i, now_res, Ri_rep, false, true);
+    
     m_ram->write_2(now_ins.i, now_res, Ri_rep, false, true);
     myenv.flag = now_flag;
 

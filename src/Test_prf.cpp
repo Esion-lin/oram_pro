@@ -14,9 +14,28 @@ std::map<std::string, double> Timer::times;
 std::map<std::string, struct timeval> Timer::ptrs;
 std::string Timer::now_name;
 int main(int argc, char** argv){
+    void* key = malloc(11*16);
+    //AES_KEY_FSS * keys = (AES_KEY_FSS*) malloc(sizeof(AES_KEY_FSS) * 1);
+    uint8_t out[16],in[16];uint8_t arr[16];
+    //AES_set_encrypt_key(arr, 128, &keys[0]);
+    
+    Timer::record("end");
+    //#pragma omp parallel for num_threads(15)
+    for(uint64_t i = 0; i < 120000000; i++){
+    
+        offline_prg(out, in, key);
+    
+   
+    }
+    Timer::stop("end");
+     Timer::test_print();
+    free(key);
+    return 0;
+    
     Config::myconfig = new Config("./config.json");
     P2Pchannel::mychnl = new P2Pchannel(Config::myconfig->Pmap, argv[1]);
     Config::myconfig->set_player(argv[1]);
+
     uint32_t data[12] = {1,2,3,4,5,6,7,8,9,10,11,12};
     add_share<uint32_t>("aid", {"player0", "player1"},data, 12);
     for(int i = 0; i < 12; i++){
@@ -57,18 +76,20 @@ int main(int argc, char** argv){
         cout<<(uint32_t)res[i]<< " ";
     }cout<<endl;
     std::cout<< "----------------test Fss mpc versions------------------\n";
-    FSS_MPC<uint32_t, 32> *fss_mpc = new FSS_MPC<uint32_t, 32>({"player0", "player1"});
+    FSS_MPC<uint32_t> *fss_mpc = new FSS_MPC<uint32_t>({"player0", "player1"}, 8);
     if(Config::myconfig->check("player0")){
         Timer::record("fss mpc gen");
-        fss_mpc->gen(3, 1, 0);
+        fss_mpc->gen(3, 100, 0);
         Timer::stop("fss mpc gen");
+        printf("----------fss gen done---------\n");
         for(int i = 0; i < 8; i++)
         fss_mpc->evl(i,0);
     }
     else if(Config::myconfig->check("player1")){
         Timer::record("fss mpc gen");
-        fss_mpc->gen(0, 0, 1);
+        fss_mpc->gen(2, 2, 1);
         Timer::stop("fss mpc gen");
+        printf("----------fss gen done---------\n");
         for(int i = 0; i < 8; i++)
         fss_mpc->evl(i,1);
     }

@@ -105,6 +105,57 @@ void Pratical_OT::recv(block* data, const bool* b, int64_t length, std::string m
     delete[] k;
     delete[] gr;
 }
+void Pratical_OT::gen_rot(int64_t length, std::string sender, std::string recver){
+    a0 = new block[length];
+    prg.random_block(a0, length);
+    if(st == sender){
+        a1 = new block[length];
+        prg.random_block(a1, length);
+        send(a0, a1, length, sender, recver);
+    }
+    if(st == recver){
+        r = new bool[length];
+        prg.random_bool(r, length);
+        recv(a0, r, length, recver, sender);
+    }
+
+
+}
+void Pratical_OT::send_with_rot(const block* data0, const block* data1, int64_t length, std::string sender, std::string recver){
+    if(st != sender) return ;
+    bool masked[length];
+    block d[length*2];
+    p2pchnl->recv_data_from(recver, masked, length);
+    for(int i = 0; i < length; i ++){
+        if(masked[i]){
+            d[i] = a1[i] ^ data0[i];
+            d[i + length] = a0[i] ^ data1[i];
+        }else{
+            d[i] = a0[i] ^ data0[i];
+            d[i + length] = a1[i] ^ data1[i];
+        }
+    }
+    p2pchnl->send_data_to(recver, d, length * 2 * sizeof(block));
+}
+void Pratical_OT::recv_with_rot(block* data, const bool* b, int64_t length, std::string sender, std::string recver){
+    /*send masked select bit*/
+    if(st != recver) return ;
+    bool masked[length];
+    block d[length*2];
+    for(int i = 0; i < length; i++){
+        masked[i] = r[i] ^ b[i];
+    }
+    p2pchnl->send_data_to(sender, masked, length);
+    p2pchnl->recv_data_from(sender, d, length * 2 * sizeof(block));
+    for(int i = 0; i < length; i++){
+        if(b[i] == 0){
+            data[i] = d[i] ^ a0[i];
+        }else{
+            data[i] = d[i + length] ^ a0[i];
+        }
+    }
+
+}	
 template<typename T>
 void to_binary(T a, bool* bin_a, int lens){
     uint64_t d_data;
@@ -157,6 +208,9 @@ void Bitwise::run_with_R_A(uint64_t R, uint64_t A, std::string file, std::string
     delete[] a0;delete[] b0;
     delete[] select_a;delete[] c;
 }
+void Bitwise::prepare_ot(uint32_t lens, std::string sender, std::string recver){
+    ot->gen_rot(lens, sender, recver);
+}
 void Bitwise::to_Y(std::string sender, std::string recver, uint64_t R, uint64_t A, int lens=64){
     bool select_a[lens],select_b[lens],select_r[lens], select_flag[lens];
     to_binary<uint64_t>(R, select_a, lens);
@@ -207,10 +261,12 @@ void Bitwise::to_Y(std::string sender, std::string recver, uint64_t R, uint64_t 
         memcpy(tmps2, R0_1, lens*sizeof(block));
         memcpy(&tmps2[lens], A0_1, lens*sizeof(block));
         ot->send(tmps, tmps2, lens*2, sender, recver);
+        p2pchnl->set_flush(false);
         static_cast<ED_P2Pch*>(p2pchnl)->send_block(Rs, lens);
         static_cast<ED_P2Pch*>(p2pchnl)->send_block(As, lens);
         static_cast<ED_P2Pch*>(p2pchnl)->send_block(R_pluss, lens);
         static_cast<ED_P2Pch*>(p2pchnl)->send_block(Flag_pluss, lens);
+        p2pchnl->flush_all();
     }
     else if(st == recver){
         HalfGateEva<ED_P2Pch>::circ_exec = new HalfGateEva<ED_P2Pch>(static_cast<ED_P2Pch*>(p2pchnl));
@@ -221,10 +277,12 @@ void Bitwise::to_Y(std::string sender, std::string recver, uint64_t R, uint64_t 
         ot->recv(tmps, selects, 2*lens, recver, sender);
         memcpy(R0, tmps, lens*sizeof(block));
         memcpy(A0, &tmps[lens], lens*sizeof(block));
+        p2pchnl->set_flush(false);
         static_cast<ED_P2Pch*>(p2pchnl)->recv_block(R1, lens);
         static_cast<ED_P2Pch*>(p2pchnl)->recv_block(A1, lens);
         static_cast<ED_P2Pch*>(p2pchnl)->recv_block(R_plus, lens);
         static_cast<ED_P2Pch*>(p2pchnl)->recv_block(Flag_plus, lens);
+        p2pchnl->flush_all();
     }
     is_y = true;
 }
@@ -247,7 +305,6 @@ void Bitwise::runs(std::string sender, std::string recver, std::vector<std::stri
     BristolFormat cf("../cir/add_32.txt");
     cf.compute(R, R0, R1);
     cf.compute(A, A0, A1);
-
     for(auto& file:files){
         BristolFormat cf2(file.c_str());
         cf2.compute(tmp, R, A);

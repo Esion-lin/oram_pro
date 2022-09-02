@@ -5,8 +5,9 @@
 #include "convert.h"
 #include <memory>
 #define M_LEN 32
-#define MEM_LEN 4028
-#define PRO_SIZE 512
+#define ARR_LEN 4096
+#define MEM_LEN 8256 //4096 + 64
+#define PRO_SIZE 64 //2*ins size
 #define TAPE_LEN 32
 //define instruction words lens
 #define OPT_LEN 5
@@ -177,7 +178,7 @@ public:
     void run_op();
     void ret_res();
     /*for debug*/
-    void print_res_flag(uint indx = 0){
+    void print_res_flag(uint indx = 0, uint start_idx = 0){
         uint32_t res_re[OPT_SIZE];
         uint32_t flags_re[OPT_SIZE];
         uint32_t betas_re[OPT_SIZE];
@@ -211,7 +212,7 @@ public:
         // std::cout<<"\n--------------mem debug-----------\n";
         // for(int i = 0; i < MEM_LEN; i++) std::cout<<"mem:"<<mem[i]<< " ";
         if(indx != 0){
-            for(int i = PRO_SIZE; i <= PRO_SIZE + indx; i++) std::cout<<"mem:"<<mem[i]<< " ";
+            for(int i = PRO_SIZE + start_idx -1; i <= PRO_SIZE + indx -1; i++) std::cout<<"mem:"<<mem[i]<< " ";
         }
         std::cout<<"\n pc: "<<pc<<" res: "<<ress<<" flag: "<<flagss<<" rc:"<<rc[0]<<" "<<rc[1];
         std::cout<<"\n--------------done-----------\n";

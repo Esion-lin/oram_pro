@@ -14,7 +14,192 @@ void initializeServer(Fss* fServer, Fss* fClient) {
 
 /*full domain*/
 void evaluateEq(Fss* f, ServerKeyEq *k, mpz_class* res, uint32_t lens) {
+       int total_count = 0; 
+    // struct timeval t1, t2;
+    // gettimeofday(&t1,NULL);
+    uint8_t* s_array = (uint8_t *)malloc(2 * ((uint64_t)1<<f->numBits) * 16);
+    std::queue<uint8_t> t_tmp;
+    // get num bits to be compared
+    uint32_t n = f->numBits;
+    uint32_t itr = 0;
+    // start at the correct LSB
     
+    memcpy(s_array, k->s[0], 16);
+
+#ifdef REDUCE_FSS
+    if((lens >> n) & 1 == 1){
+#endif
+    memcpy(s_array + 16, k->s[1], 16);
+#ifdef REDUCE_FSS
+    }
+#endif
+    t_tmp.push(k->t[0]);
+    t_tmp.push(k->t[1]);
+    unsigned char t;
+    
+    unsigned char temp[2];
+    unsigned char out[48];
+    uint32_t tmp_j = 1;
+    
+    uint32_t ptr=0;
+    for (uint32_t i = 1; i < n+1; i++) {
+        /*i = 2 j = 2*/
+        tmp_j<<=1;
+
+        #ifdef REDUCE_FSS
+        if((lens >> (n + 1 - i)) & 1 == 0) tmp_j -= 1;
+        #endif
+        for(int j = 0; j < tmp_j; j++){
+            
+
+            
+            
+            t = t_tmp.front(); t_tmp.pop();
+            prf(out, s_array + ptr*16, 48, f->aes_keys, f->numKeys);
+            total_count++;
+            out[32] %= 2;
+            out[33] %= 2;
+            temp[0] = out[32];
+            temp[1] = out[33];
+            //free(s);
+            if (i == n - 1) {
+                for(int ii = 0; ii < 2; ii++){
+                    uint8_t stmp[16];
+                    for (uint32_t jj = 0; jj < 16; jj++) {
+                        stmp[jj] = out[16*ii + jj] ^ k->cw[t][i-1].cs[ii][jj];
+                        
+                    }
+                    mpz_class ans;
+                    mpz_import(ans.get_mpz_t(), 16, 1, sizeof(stmp[0]), 0, 0, stmp);
+                    ans = ans * k->w;
+                    ans = ans % f->prime;
+                    res[itr ++] = ans;
+                        
+                        
+
+                    if(itr >= lens) {
+                        // free(r[0]);free(r[1]);free(r[2]);
+                        free(s_array);
+                        return;
+    
+                    }
+                    
+                }
+
+            }
+            else{
+                for(int ii = 0; ii < 2; ii++){
+                    uint8_t tt;
+                    for (uint32_t jj = 0; jj < 16; jj++) {
+                        s_array[16*(ptr*2+ 2 + ii) + jj] = out[16*ii + jj] ^ k->cw[t][i-1].cs[ii][jj];
+                    }
+                    
+                    tt = temp[ii] ^ k->cw[t][i-1].ct[ii];
+                    t_tmp.push(tt);
+                    
+                }
+            }
+            ptr++;
+        }
+
+    }
+    
+    
+}
+void evaluateEq(Fss* f, ServerKeyEq *k, uint32_t * res, uint32_t lens) {
+       int total_count = 0; 
+    // struct timeval t1, t2;
+    // gettimeofday(&t1,NULL);
+    uint8_t* s_array = (uint8_t *)malloc(2 * ((uint64_t)1<<f->numBits) * 16);
+    std::queue<uint8_t> t_tmp;
+    // get num bits to be compared
+    uint32_t n = f->numBits;
+    uint32_t itr = 0;
+    // start at the correct LSB
+    
+    memcpy(s_array, k->s[0], 16);
+
+#ifdef REDUCE_FSS
+    if((lens >> n) & 1 == 1){
+#endif
+    memcpy(s_array + 16, k->s[1], 16);
+#ifdef REDUCE_FSS
+    }
+#endif
+    t_tmp.push(k->t[0]);
+    t_tmp.push(k->t[1]);
+    unsigned char t;
+    
+    unsigned char temp[2];
+    unsigned char out[48];
+    uint32_t tmp_j = 1;
+    uint32_t kww = mpz_get_ui(k->w.get_mpz_t());
+    uint64_t prime_64 = mpz_get_ui(f->prime.get_mpz_t());
+    uint32_t ptr=0;
+    for (uint32_t i = 1; i < n+1; i++) {
+        /*i = 2 j = 2*/
+        tmp_j<<=1;
+
+        #ifdef REDUCE_FSS
+        if((lens >> (n + 1 - i)) & 1 == 0) tmp_j -= 1;
+        #endif
+        for(int j = 0; j < tmp_j; j++){
+            t = t_tmp.front(); t_tmp.pop();
+            prf(out, s_array + ptr*16, 48, f->aes_keys, f->numKeys);
+            total_count++;
+            out[32] %= 2;
+            out[33] %= 2;
+            temp[0] = out[32];
+            temp[1] = out[33];
+            //free(s);
+            if (i == n - 1) {
+                for(int ii = 0; ii < 2; ii++){
+                    uint64_t ans = 0;
+                    for (uint32_t jj = 0; jj < 4; jj++) {
+                        ans += (out[16*ii + jj] ^ k->cw[t][i-1].cs[ii][jj]);
+                        if(jj != 3){
+                            ans = ans << 8;
+                        }
+                        
+                        
+                    }
+                    uint8_t tt;
+                    tt = temp[ii] ^ k->cw[t][i-1].ct[ii];
+                    ans = ans + tt * kww;
+                    res[itr ++] = ans;
+                        
+
+                    if(itr >= lens) {
+                        free(s_array);
+                        return;
+    
+                    }
+                    
+                }
+
+            }
+            else{
+                for(int ii = 0; ii < 2; ii++){
+                    uint8_t tt;
+                    for (uint32_t jj = 0; jj < 16; jj++) {
+                        s_array[16*(ptr*2+ 2 + ii) + jj] = out[16*ii + jj] ^ k->cw[t][i-1].cs[ii][jj];
+                    }
+                    
+                    tt = temp[ii] ^ k->cw[t][i-1].ct[ii];
+                    t_tmp.push(tt);
+                    
+                }
+            }
+            ptr++;
+        }
+
+    }
+    
+    
+}
+/*full domain*/
+void evaluateEq_full(Fss* f, ServerKeyEq *k, mpz_class* res, uint32_t lens) {
+    int total_count = 0; 
     // struct timeval t1, t2;
     // gettimeofday(&t1,NULL);
     std::queue<uint8_t*> s_tmp;
@@ -57,18 +242,14 @@ void evaluateEq(Fss* f, ServerKeyEq *k, mpz_class* res, uint32_t lens) {
             
             t = t_tmp.front(); t_tmp.pop();
             prf(out, s, 48, f->aes_keys, f->numKeys);
-            
-            memcpy(sArray, out, 32);
-            temp[0] = out[32] % 2;
-            temp[1] = out[33] % 2;
+
+            out[32] %= 2;
+            out[33] %= 2;
             free(s);
             if (i == n) {
                 mpz_class ans;
-                unsigned char sIntArray[34];
-                memcpy(sIntArray, sArray, 32);
-                sIntArray[32] = temp[0];
-                sIntArray[33] = temp[1];
-                mpz_import(ans.get_mpz_t(), 34, 1, sizeof(sIntArray[0]), 0, 0, sIntArray);
+                mpz_import(ans.get_mpz_t(), 34, 1, sizeof(out[0]), 0, 0, out);
+                //std::cout<<ans<<std::endl;
                 ans = ans * k->w;
                 ans = ans % f->prime;
                 res[itr ++] = ans;
@@ -86,13 +267,12 @@ void evaluateEq(Fss* f, ServerKeyEq *k, mpz_class* res, uint32_t lens) {
             for(int ii = 0; ii < 2; ii++){
                 uint8_t tt;
                 s = (uint8_t*) malloc(16);
-                memcpy(s, (unsigned char*)(sArray + (ii*16)), 16);
-                #pragma omp simd
+                
                 for (uint32_t jj = 0; jj < 16; jj++) {
-                    s[jj] = s[jj] ^ k->cw[t][i-1].cs[ii][jj];
+                    s[jj] = out[16*ii + jj] ^ k->cw[t][i-1].cs[ii][jj];
                 }
                    
-                tt = temp[ii] ^ k->cw[t][i-1].ct[ii];
+                tt = out[32 + ii] ^ k->cw[t][i-1].ct[ii];
                 s_tmp.push(s);t_tmp.push(tt);
                 
             }
@@ -101,10 +281,9 @@ void evaluateEq(Fss* f, ServerKeyEq *k, mpz_class* res, uint32_t lens) {
         }
 
     }
-
+    // printf("prg count %d \n", total_count);
     
 }
-
 // evaluate whether x satisifies value in function stored in key k
 
 mpz_class evaluateEq(Fss* f, ServerKeyEq *k, uint64_t x) {

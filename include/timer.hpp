@@ -26,6 +26,11 @@ class Timer{
             times[name] = times[name] + (t1.tv_sec - ptrs[name].tv_sec) + (double)(t1.tv_usec - ptrs[name].tv_usec)/1000000.0;
         }
     }
+    static void get_time(){
+        struct timeval t1;
+        gettimeofday(&t1,NULL);
+        std::cout<<"------------"<<t1.tv_usec<<"-----------------"<<std::endl;
+    }
     static void tag(std::string name){
         struct timeval t1;
         gettimeofday(&t1,NULL);
@@ -43,14 +48,17 @@ class Timer{
         }
     }
     static void test_print(std::string path = "data.csv"){
-        ofstream outFile;  
-        outFile.open(path, ios::app);
+        //ofstream outFile;  
+        //outFile.open(path, ios::app);
         for(auto ele:times){
+            
             printf("%s: %lf seconds\n", ele.first.c_str(), ele.second);
-            if(ele.first == "init") outFile << ele.second << ',';
-            else outFile << ele.second * 1000 << ',';
+            //if(ele.first == "mpc_write_total" || ele.first == "mpc_write_online"){outFile << ele.second * 1000 << ',';}
+            // if(ele.first == "init") outFile << ele.second << ',';
+
+            // else outFile << ele.second * 1000 << ',';
         }
-        outFile<<std::endl;
+        //outFile<<std::endl;
     }
 
 };

@@ -2,7 +2,10 @@
 #define FSS_COMMON_H
 
 
-
+#include <emmintrin.h>
+#include <unistd.h>
+#include <wmmintrin.h>
+#include <tmmintrin.h>
 
 #include <cpuid.h>
 #include <gmp.h>
@@ -94,5 +97,5 @@ inline uint32_t byteArr2Int32(unsigned char* arr)
 }
 
 AES_KEY* prf(unsigned char* out, unsigned char* key, uint64_t in_size, AES_KEY* aes_keys, uint32_t numKeys);
-
+void offline_prg(uint8_t * dest, uint8_t * src, void * ri);
 #endif

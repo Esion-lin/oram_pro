@@ -7,6 +7,7 @@
 #include "convert.h"
 #include "preliminaries.hpp"
 #include <tuple>
+#include "timer.hpp"
 #include <array>
 using scmp_tuple = tuple<ServerKeyLt, ServerKeyLt, array<uint32_t,2>, array<uint64_t,2>>;
 using eq_tuple = tuple<ServerKeyEq, uint32_t>;

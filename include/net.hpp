@@ -234,17 +234,17 @@ class HighSpeedNetIO { public:
 	}
 
 	void send_data_internal(const void *data, int len) {
-		if (FSM == 1) {
-			rchannel->flush();
-		}
+		// if (FSM == 1) {
+		// 	rchannel->flush();
+		// }
 		schannel->send_data(data, len);
 		FSM = 2;
 	}
 
 	void recv_data_internal(void *data, int len) {
-		if (FSM == 2) {
-			schannel->flush();
-		}
+		// if (FSM == 2) {
+		// 	schannel->flush();
+		// }
 		rchannel->recv_data(data, len);
 		FSM = 1;
 	}
@@ -254,7 +254,11 @@ class P2Pchannel{
 	private:
 	std::map<std::string, net::HighSpeedNetIO*> subio;
 	uint32_t send_len = 0;
-	
+	uint32_t recv_len = 0;
+	std::map<std::string, uint32_t> bytes_send_lens;
+	std::map<std::string, uint32_t> bytes_recv_lens;
+	std::map<std::string, uint32_t> ptrs_send;
+	std::map<std::string, uint32_t> ptrs_recv;
 	int FSM = 0;
 	protected:
 	
@@ -262,7 +266,35 @@ class P2Pchannel{
     public:
 	bool is_flush = true;
 	static P2Pchannel* mychnl;
+	void record(std::string name){
+		ptrs_send[name] = send_len;
+		ptrs_recv[name] = recv_len;
+	}
+	void stop(std::string name){
+		if(bytes_send_lens.find(name) == bytes_send_lens.end()){
+			bytes_send_lens[name] = send_len - ptrs_send[name];
+		}else{
+			bytes_send_lens[name] += send_len - ptrs_send[name];
+		}
+		if(bytes_recv_lens.find(name) == bytes_recv_lens.end()){
+			bytes_recv_lens[name] = recv_len - ptrs_recv[name];
+		}else{
+			bytes_recv_lens[name] += recv_len - ptrs_recv[name];
+		}
+		
+	}
+	void test_print(){
+		for(auto ele:bytes_send_lens){
+            
+            printf("%s send: %lu bytes\n", ele.first.c_str(), ele.second);
+		}
+		for(auto ele:bytes_recv_lens){
+            
+            printf("%s recv: %lu bytes\n", ele.first.c_str(), ele.second);
+		}
+	}
     P2Pchannel(std::map<std::string, Player> pmap, std::string user){
+		
 		st = user;
 		/*根据当前用户构建通信通道*/
 		for(auto &v : pmap){
@@ -271,7 +303,8 @@ class P2Pchannel{
 			int port2 = 9000 + v.second.port*10 + pmap[user].port;
 			if(port1 > port2) subio[v.first] = new net::HighSpeedNetIO(nullptr, port1, port2);
 			else subio[v.first] = new net::HighSpeedNetIO(v.second.address.c_str(), port2, port1);
-
+			#ifdef DISK_NET
+			#endif
 		}
 		LOG(INFO) << "P2Pchannel construction done"<<std::endl;
 	}
@@ -279,18 +312,42 @@ class P2Pchannel{
 		is_flush = flush_t;
 
 	}
+	void bloadcast(const void* data, int len){
+		for(auto & ele : subio){
+			ele.second->send_data_internal(data, len);
+		}
+		if(is_flush) flush_all();
+	}
+	std::map<std::string, std::vector<uint8_t>> 
+	recv_all(int len){
+		std::map<std::string, std::vector<uint8_t>>  ret;
+		for(auto & ele : subio){
+			std::vector<uint8_t> tmp(len);
+			ele.second->recv_data_internal(tmp.data(), len);
+			ret[ele.first] = tmp;
+		}
+		return ret;
+	}
 	void send_data_to(std::string player, const void* data, int len){
 		//if (FSM == 1) {
 			
 		//}
+		#ifdef DISK_NET
+
+		#else
 		send_len += len;
 		subio[player]->send_data_internal(data, len);
 		if(is_flush) flush_all();
+		#endif
 	}
 	void recv_data_from(std::string player, void* data, int len){
+		#ifdef DISK_NET
+		
+		#else
+		recv_len += len;
 		subio[player]->recv_data_internal(data, len);
 		if(is_flush) flush_all();
-		
+		#endif		
 	}
 	void flush_player(std::string player) {
 		subio[player]->flush();
@@ -302,6 +359,7 @@ class P2Pchannel{
 	}
 	~P2Pchannel(){
 		printf("send data %u\n",send_len);
+		printf("recv data %u\n",recv_len);
 		//清理节点
 		for(auto &v : subio) delete v.second;
 	}

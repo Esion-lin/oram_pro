@@ -1,0 +1,3 @@
+class circuit_load{
+    
+}

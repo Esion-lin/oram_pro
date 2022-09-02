@@ -14,11 +14,12 @@ Config* Config::myconfig;
 P2Pchannel* P2Pchannel::mychnl;
 INITIALIZE_EASYLOGGINGPP
 int main(int argc, char** argv){
-    ifstream infile("ins.ins");
+    ifstream infile("set_inte.ins");
+    srand((unsigned) time(0));
     Ins testins;
     uint32_t char_int;
     Env testenv;
-    int ins_lens = 17;
+    int ins_lens = 23;
     for (int i = 0; i < ins_lens; i++){
         infile>>char_int;
         testins.optr = char_int;
@@ -32,7 +33,7 @@ int main(int argc, char** argv){
         testins.pad = char_int;
         infile>>char_int;
         testins.imme = char_int;
-        
+
         uint64_t tmp = i2m(testins);
         set_T<uint64_t>(testenv.mem, i, tmp);
     }
@@ -45,22 +46,30 @@ int main(int argc, char** argv){
     testenv.num0 = 31;
     testenv.num1 = 31;
     for(int i = 0; i < TAPE_LEN; i++){
-        testenv.tape1[i] = 100+i;
-        testenv.tape2[i] = 200+i;
+        testenv.tape1[i] = 0;
+        testenv.tape2[i] = 0;
         
     }
     srand((unsigned) time(NULL));
-    testenv.tape1[0] = 528;
-    testenv.tape1[1] = 2;
-    testenv.tape1[2] = 102;
+    testenv.tape1[0] = 0;
+    testenv.tape1[1] = ARR_LEN;
+    testenv.tape1[2] = ARR_LEN;
+    testenv.tape1[3] = ARR_LEN*2;
+    
 
     for(int i = 0; i < M_LEN; i++){
-        testenv.m[i] = i;
+        testenv.m[i] = 0;
     }
-    for(int i = PRO_SIZE; i < MEM_LEN; i++){
-        testenv.mem[i] = i;
+    //for(int i = PRO_SIZE; i < MEM_LEN; i++){
+    //    testenv.mem[i] = rand() % MEM_LEN;
         
+    //}
+    for(int i = 0; i < ARR_LEN; i++){
+        testenv.mem[i+PRO_SIZE] = i*2;
+        testenv.mem[i+PRO_SIZE+ARR_LEN] = i*2+1;
     }
+
+
     std::cout<<std::endl;
 
 
@@ -82,16 +91,18 @@ int main(int argc, char** argv){
     // now_mechine->print_res_flag(1);
     now_mechine->load_env();
     int total_seq = 0;
+    // int maxit = 300;
     while(true){
+        
         total_seq++;
         Timer::record("load_ins");
-        std::cout<<"NO."<<total_seq<<" -----------------------test load ins-------------------\n";
+        //std::cout<<"NO."<<total_seq<<" -----------------------test load ins-------------------\n";
         Ins a = now_mechine->load_ins();
         if(now_mechine->done) break;
         Timer::stop("load_ins");
         uint32_t re_list[3] = {now_mechine->Ri, now_mechine->Rj, now_mechine->A};
         fourpc_reveal<uint32_t>(re_list, 3, {"player0"}, st, P2Pchannel::mychnl);
-        //if(st == "player0") std::cout<<"Ri "<<re_list[0]<<"; Rj "<<re_list[1]<<"; A "<<re_list[2]<<";\n";
+        if(st == "player0") std::cout<<"Ri "<<re_list[0]<<"; Rj "<<re_list[1]<<"; A "<<re_list[2]<<";\n";
         //std::cout<<"-----------------------test done-------------------\n";
         
         std::cout<<"-----------------------test run_op-------------------\n";
@@ -101,14 +112,15 @@ int main(int argc, char** argv){
         Timer::record("write_ins");
         now_mechine->ret_res();
         Timer::stop("write_ins");
-        now_mechine->print_res_flag(8);
-        
+        //now_mechine->print_res_flag(512 , 512 - 16);
+        //Timer::test_print();
         //std::cout<<"-----------------------test done-------------------\n";
     }
     now_mechine->print_res_flag(14);
     
     Timer::test_print();
-    std::cout<<"total run ins "<<total_seq<<" "<<Timer::times["run_ins"]/total_seq<<" s per ins"<<std::endl;
+
+    std::cout<<"total run ins "<<total_seq<<" "<<(Timer::times["run_ins"] - Timer::times["run_ins_offline"] + Timer::times["write_ins"] + Timer::times["load_ins"])/total_seq<<" s per ins"<<std::endl;
     delete Config::myconfig;
     delete P2Pchannel::mychnl;
     delete now_mechine;

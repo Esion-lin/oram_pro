@@ -8,3 +8,29 @@
 |   10000 |     4321 |    25 |       |
 |  100000 |     4321 |    25 |       |
 | 1000000 |     4321 |    25 |       |
+
+
+load_ins: 50.428864 seconds
+revplayer1: 0.974265 seconds
+revplayer2: 19.759659 seconds
+revplayer3: 1.543619 seconds
+round1: 23.963146 seconds
+round2: 39.189616 seconds
+round2-bitwise: 0.125708 seconds
+round2-cmov_op: 0.020354 seconds
+round2-jump: 0.029989 seconds
+round2-load_op: 28.481985 seconds
+round2-mov_op: 0.016487 seconds
+round2-mul: 2.664447 seconds
+round2-read_op: 3.276286 seconds
+round2-store_op: 0.011119 seconds
+round2add: 1.591807 seconds
+round2ae_cmp: 0.783963 seconds
+round2eq_cmp: 0.126624 seconds
+round2read_flag: 1.903811 seconds
+run_ins: 817.989987 seconds
+run_ins_offline: 452.548962 seconds
+share trans: 212.625194 seconds
+write_ins: 39.003509 seconds
+total run ins 12283 0.0370328 s per ins
+send data 563859274

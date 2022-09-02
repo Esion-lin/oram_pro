@@ -23,7 +23,7 @@ mmmp = {
     "LOAD":20,
     "READ":21,
     }
-arg_map = {"MEM":1500}
+arg_map = {"MEM":512}
 ret = []
 ret_list = []
 def deal_token(arr, amap, idx):

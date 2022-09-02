@@ -3,6 +3,7 @@
 #include "preliminaries.hpp"
 #include "timer.hpp"
 #include "convert.h"
+#include "fss_mpc.h"
 using namespace argparse;
 INITIALIZE_EASYLOGGINGPP
 #define max_ele_size 100
@@ -111,70 +112,87 @@ int main(int argc, const char** argv) {
     /*
     start oram
     */
-    Config* cfg = new Config("./config.json");
-    P2Pchannel* p2pchnl = new P2Pchannel(cfg->Pmap, st);
+    Config::myconfig = new Config("./config.json");
+    P2Pchannel::mychnl = new P2Pchannel(Config::myconfig->Pmap, st);
+    Config::myconfig->set_player(st);
     if(ele_size == 1){
         
-            Convert* conv = new Convert(st, p2pchnl);
+            Convert* conv = new Convert(st, P2Pchannel::mychnl);
             conv->fourpc_zeroshare<uint32_t>(itr);
 
-
+            ele_lens/=128;
             uint32_t* ram_data = (uint32_t*)malloc(sizeof(uint32_t)*ele_lens);
             
             for(int i = 0; i < ele_lens; i++) ram_data[i] = i;
             Timer::record("total time");
             Timer::record("init");
-            replicated_share<uint32_t>(ram_data, ele_lens, st, p2pchnl);
-            ele_lens/=128;
-            Ram<uint32_t>* test_ram = new Ram<uint32_t>(ram_data, ele_lens, st, p2pchnl);
+            replicated_share<uint32_t>(ram_data, ele_lens, st, P2Pchannel::mychnl);
+            Ram<uint32_t>* test_ram = new Ram<uint32_t>(ram_data, ele_lens, st, P2Pchannel::mychnl);
+            
+            Oram *test_ram2 = new Oram(ele_lens, ram_data);
             test_ram->init();
-            p2pchnl->flush_all();
+            P2Pchannel::mychnl->flush_all();
             Timer::stop("init");
-            Timer::record("read_online");
+            Timer::record("mpc_write_total");
+            Timer::record("read_offline");
             test_ram->prepare_read(itr);
-            p2pchnl->flush_all();
-            Timer::stop("read_online");
+            P2Pchannel::mychnl->flush_all();
+            Timer::stop("read_offline");
+            Timer::stop("mpc_write_total");
             Timer::record("write_online");
             test_ram->prepare_write(itr);
-            p2pchnl->flush_all();
+            P2Pchannel::mychnl->flush_all();
             Timer::stop("write_online");
 
             while(itr -- ){
+                uint32_t res;
+                Timer::record("mpc_write_total");
                 Timer::record("read_online");
-                uint32_t tmp = test_ram->read(itr, false);
+                Timer::record("mpc_write_online");
+                uint32_t tmp = test_ram->read(2, false);
+                Timer::stop("mpc_write_online");
                 Timer::stop("read_online");
+                Timer::stop("mpc_write_total");
                 if(st == "player1" || st == "player3") tmp = - tmp;
-                
+                fourpc_reveal<uint32_t>(&tmp, &res, 1, st, P2Pchannel::mychnl);
+                //if(res > 1000)
+                // printf("-----------%u-----------\n", res);
                 conv->fourpc_share_2_replicated_share<uint32_t>(&tmp, 1);
                 Timer::record("write_online");
-                test_ram->write(itr, 8, tmp, false);
+                test_ram->write(1, 8, tmp, false);
                 Timer::stop("write_online");
-                p2pchnl->flush_all();
+                Timer::record("mpc_write_total");
+                test_ram2->prepare_write(1);
+                Timer::record("mpc_write_online");
+                test_ram2->write(1,8,2);
+                Timer::stop("mpc_write_online");
+                Timer::stop("mpc_write_total");
+                P2Pchannel::mychnl->flush_all();
             }
             Timer::stop("total time");
             
             free(ram_data);
             delete test_ram;
-            
+            delete test_ram2;
             delete conv;
             
         
     }else{
-        
-            Convert* conv = new Convert(st, p2pchnl);
+            
+            Convert* conv = new Convert(st, P2Pchannel::mychnl);
             conv->fourpc_zeroshare<block_t>(itr);
 
 
             block_t ram_data[ele_lens];
-            Ram<block_t>* test_ram = new Ram<block_t>(ram_data, ele_lens, st, p2pchnl);
+            Ram<block_t>* test_ram = new Ram<block_t>(ram_data, ele_lens, st, P2Pchannel::mychnl);
             test_ram->init();
             Timer::record("read_offline");
             test_ram->prepare_read(itr);
-            p2pchnl->flush_all();
+            P2Pchannel::mychnl->flush_all();
             Timer::stop("read_offline");
             Timer::record("write_offline");
             test_ram->prepare_write(itr);
-            p2pchnl->flush_all();
+            P2Pchannel::mychnl->flush_all();
             Timer::stop("write_offline");
 
             while(itr -- ){
@@ -193,7 +211,7 @@ int main(int argc, const char** argv) {
         
     }
     Timer::test_print(st+".csv");
-    delete cfg;
-    delete p2pchnl;
+    delete Config::myconfig;
+    delete P2Pchannel::mychnl;
 
 }

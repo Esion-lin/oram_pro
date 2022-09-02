@@ -33,14 +33,40 @@ AES_KEY* prf(unsigned char* out, unsigned char* key, uint64_t in_size, AES_KEY* 
     //#pragma omp parallel for
     for (int i = 0; i < num_keys_required; i++) {
 #ifndef AESNI
-        AES_encrypt(key, out + (i*16), &temp_keys[i]);
+        //AES_encrypt(key, out + (i*16), &temp_keys[i]);
+        offline_prg(out + (i*16), key, &temp_keys[i]);
 #else
-        aesni_encrypt(key, out + (i*16), &temp_keys[i]);
+        //aesni_encrypt(key, out + (i*16), &temp_keys[i]);
+        offline_prg(out + (i*16), key, &temp_keys[i]);
 #endif
     }
-    for (int i = 0; i < in_size; i++) {
-        out[i] = out[i] ^ key[i%16];
-    }
+    // for (int i = 0; i < in_size; i++) {
+    //     out[i] = out[i] ^ key[i%16];
+    // }
     return temp_keys;
 }
 
+void offline_prg(uint8_t * dest, uint8_t * src, void * ri) {
+	__m128i xr;
+    __m128i mr;
+	__m128i * r = (__m128i *)ri;
+
+    xr = _mm_load_si128((__m128i *) src);
+    mr = xr;
+    
+    mr = _mm_xor_si128(mr, r[0]);
+
+    mr = _mm_aesenc_si128(mr, r[1]);
+    mr = _mm_aesenc_si128(mr, r[2]);
+    mr = _mm_aesenc_si128(mr, r[3]);
+    mr = _mm_aesenc_si128(mr, r[4]);
+    mr = _mm_aesenc_si128(mr, r[5]);
+    mr = _mm_aesenc_si128(mr, r[6]);
+    mr = _mm_aesenc_si128(mr, r[7]);
+    mr = _mm_aesenc_si128(mr, r[8]);
+    mr = _mm_aesenc_si128(mr, r[9]);
+    mr = _mm_aesenclast_si128(mr, r[10]);
+    mr = _mm_xor_si128(mr, xr);
+    _mm_storeu_si128((__m128i*) dest, mr);
+
+}

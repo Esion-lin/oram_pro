@@ -7,7 +7,21 @@ SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -Wall -g2 -ggdb -fsanitize=address -fn
 SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")  
 SET(CMAKE_EXE_LINKER_FLAGS 
           "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/usr/local/lib")
-add_definitions(  -DNEED_MUL -DNEED_CMOV -DTotal_bitwise -w)
+add_definitions(-DNEED_MUL -DNEED_CMOV -DTotal_bitwise -w)
+
+IF (CMAKE_BUILD_TYPE STREQUAL Debug)        
+    add_definitions(-DDEBUG) 
+ENDIF()
+
+option(ENABLE_FFS "Enable FFS" OFF)
+option(ENABLE_GC "Enable GC" OFF)
+option(ENABLE_DT "Enable DT" OFF)
+option(TEST_FOREST_DT "test forest dt protocol" OFF)
+option(TEST_RISC "test risc protocol" OFF)
+option(TEST_GCM "test GCM protocol" OFF)
+
+option(TEST_AUDI "test auditable protocol" ON)
+
 
 find_package(OpenSSL REQUIRED)
 find_path(GMP_INCLUDE_DIR NAMES gmp.h)
@@ -34,39 +48,82 @@ include(cmake/emp.cmake)
 include(cmake/empot.cmake)
 include_directories(include)
 
-include_directories(fss/include)
-add_library(fss fss/fss-client.cpp
-                fss/fss-common.cpp
-                fss/fss-server.cpp)
 include_directories(protocol)
 include_directories(protocol/3_parties)
-add_library(risc protocol/src/risc.cpp
-                protocol/src/convert.cpp)
-add_library(gc protocol/src/gc_op.cpp)
-add_library(fss_mpc include/fss_mpc.cpp)
-target_link_libraries(gc ${OPENSSL_LIBRARIES} emp-tool emp empot)
-target_link_libraries(fss gmp gmpxx ${OPENSSL_LIBRARIES})
-target_link_libraries(risc fss gc)
-# add_executable(test src/Test_ram.cpp)
-add_executable(test_gc src/Test_gc.cpp)
-add_executable(test_prf src/Test_prf.cpp)
-add_executable(ORAM_TEST src/oram_rw_test.cpp)
-add_executable(test_risc src/Test_risc.cpp)
-# add_executable(test_thr src/Test_3_parties.cpp)
-add_executable(test_ic src/test_ic.cpp)
-add_executable(test_csot src/Test_csot.cpp)
-# add_executable(test_dt_con src/Test_3_dt_const.cpp)
-add_executable(test_dt src/dt_test.cpp)
-add_executable(test_dt_64 src/dt_test_64.cpp)
-# target_link_libraries(test PRIVATE risc log)
-target_link_libraries(ORAM_TEST PRIVATE risc log)
-target_link_libraries(test_risc PRIVATE risc log)
-target_link_libraries(test_prf PRIVATE fss gc log fss_mpc)
+include_directories(protocol/2_parties)
+if (ENABLE_FFS)
+    message("enable ffs") 
+    include_directories(fss/include)
+    add_library(fss fss/fss-client.cpp
+                    fss/fss-common.cpp
+                    fss/fss-server.cpp)
+    add_library(fss_mpc include/fss_mpc.cpp)
+    target_link_libraries(fss gmp gmpxx ${OPENSSL_LIBRARIES})
+    add_executable(test_fss src/Test_ram.cpp)
+    target_link_libraries(test_fss PRIVATE fss)
+endif()
 
-target_link_libraries(test_gc PRIVATE gc log emp-tool emp empot)
+if (ENABLE_GC)
+    message("enable gc") 
+    add_library(gc protocol/src/gc_op.cpp)
+    target_link_libraries(gc ${OPENSSL_LIBRARIES} emp-tool emp empot)
+    add_executable(test_gc src/Test_gc.cpp)
+    target_link_libraries(test_gc PRIVATE gc log emp-tool emp empot)   
+endif()
+if (TEST_GCM)
+    add_library(gcm protocol/2_parties/GCM.cpp)
+    add_executable(test_gcm src/test_gcm.cpp)
+    target_link_libraries(test_gcm PRIVATE gcm gc log emp-tool emp empot )
+endif()
+
+if (TEST_RISC)
+    message("enable risc") 
+    add_library(risc protocol/src/risc.cpp
+                    protocol/src/convert.cpp)
+    target_link_libraries(risc fss gc)
+    add_executable(test src/Test_ram.cpp)
+    add_executable(test_prf src/Test_prf.cpp)
+    add_executable(ORAM_TEST src/oram_rw_test.cpp)
+    add_executable(test_risc src/Test_risc.cpp)
+    add_executable(test_reveal src/Test_reveal.cpp)
+    target_link_libraries(ORAM_TEST PRIVATE risc log fss_mpc)
+    target_link_libraries(test_risc PRIVATE risc log)
+    target_link_libraries(test_prf PRIVATE fss gc log fss_mpc)
+    target_link_libraries(test_reveal PRIVATE  log )
+endif()
+if (TEST_FOREST_DT)
+    message("enable dt") 
+    add_executable(test_ic src/test_ic.cpp)
+    add_executable(test_csot src/Test_csot.cpp)
+    # add_executable(test_dt_con src/Test_3_dt_const.cpp)
+    add_executable(test_dt src/dt_test.cpp)
+    add_executable(test_dt_64 src/dt_test_64.cpp)
+    target_link_libraries(test_ic PRIVATE fss log)
+    target_link_libraries(test_csot PRIVATE fss log)
+    target_link_libraries(test_dt PRIVATE fss log )
+    target_link_libraries(test_dt_64 PRIVATE fss log )
+endif()
+
+if(TEST_AUDI)
+    message("enable audi") 
+    include_directories(protocol/auditable)
+    add_executable(test_audit protocol/auditable/test.cpp)
+    target_link_libraries(test_audit PRIVATE gmp gmpxx ${OPENSSL_LIBRARIES} log)
+endif()
+
+
+
+
+# 
+
+
+
+# add_executable(test_thr src/Test_3_parties.cpp)
+
+# target_link_libraries(test PRIVATE risc log)
+
+
+
 # target_link_libraries(test_thr PRIVATE fss log)
-target_link_libraries(test_ic PRIVATE fss log)
-target_link_libraries(test_csot PRIVATE fss log)
+
 # target_link_libraries(test_dt_con PRIVATE fss log )
-target_link_libraries(test_dt PRIVATE fss log )
-target_link_libraries(test_dt_64 PRIVATE fss log )

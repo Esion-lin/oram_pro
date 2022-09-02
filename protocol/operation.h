@@ -420,7 +420,9 @@ public:
             res[i] = mem_ram->read_2(data_b[i], false);
             if(st == "player1" || st == "player3") res[i] = -res[i];
         }
+        //Timer::get_time();
         conv->fourpc_share_2_replicated_share_1(res, len);
+        //Timer::get_time();
     }
     void round3(){
         conv->fourpc_share_2_replicated_share_2(res, len);

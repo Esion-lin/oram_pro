@@ -16,7 +16,13 @@ void local_block2(const uint8_t * s, uint8_t t, const uint8_t * sigma, const uin
 void mpc_block1(const uint8_t* z0, const uint8_t* z1, uint8_t alpha, uint8_t* out_zetta, uint8_t & tao0, uint8_t & tao1, std::pair<std::string,std::string> tarro);
 void mpc_block2(const uint8_t* z0, const uint8_t* z1, uint8_t alpha, uint8_t* beta, uint8_t* out_zetta, uint8_t* out_gamma, uint8_t & tao0, uint8_t & tao1, std::pair<std::string,std::string> tarro);
 
-
+inline uint32_t get_bits(uint32_t x){
+    for(uint32_t i = 0; i < 32; i++){
+        if(pow(2, i) >= x)
+            return i;
+    }
+    return 32;
+}
 template<typename T>
 T byteArr2Block(uint8_t * bytes){
     //TODO: transfer to group
@@ -25,39 +31,43 @@ T byteArr2Block(uint8_t * bytes){
     return res;
 
 }
-template< typename T, uint16_t deep = 32>
+template< typename T>
 class FSS_MPC{
     /*
     output_bytes with Little Endian
     */
 private:
     std::pair<std::string,std::string> tarro;
-
+    Fss faccess; 
+    bool is_store = false;
     AES_KEY_FSS *keys;
-    uint16_t keys_num = 2;
-    vector<uint8_t*> sigmas;
+    uint16_t keys_num = 4;
+    //vector<uint8_t*> sigmas;
+    uint8_t* sigmas;
     uint8_t* gammas;
-    vector<uint8_t> tau0,tau1;
+    //vector<uint8_t> tau0,tau1;
+    uint8_t * tau0, *tau1;
     uint8_t s0[32];
     uint8_t t;
     std::queue<uint8_t*> level;
     std::queue<uint8_t> tlevel;
+    uint16_t deep;
 
 public:
-    FSS_MPC(std::pair<std::string,std::string> tarro):tarro(tarro){
+    std::vector<uint64_t> res_list;
+    FSS_MPC(std::pair<std::string,std::string> tarro, uint16_t deep):tarro(tarro), deep(deep){
         uint8_t arr[16];
-        keys = (AES_KEY_FSS*) malloc(sizeof(AES_KEY_FSS) * keys_num);
+        initializeClient(&faccess, deep, 2);
+        
         gammas = (uint8_t*) malloc(16 * sizeof(uint8_t));
-        for(int i = 0; i < keys_num; i++){
-            // get_rand<uint8_t>({tarro.first, tarro.second}, arr, 16);
-            if(Config::myconfig->check(tarro.first)){
-                RAND_bytes(arr, 16);
-                P2Pchannel::mychnl->send_data_to(tarro.second, arr, 16);
-            }else if(Config::myconfig->check(tarro.second)){
-                P2Pchannel::mychnl->recv_data_from(tarro.first, arr, 16);
-            }
-            AES_set_encrypt_key(arr, 128, &keys[i]);
-        }
+        sigmas = (uint8_t*) malloc(16 * sizeof(uint8_t) * deep);
+        tau0 = (uint8_t*) malloc(sizeof(uint8_t) * deep);
+        tau1 = (uint8_t*) malloc(sizeof(uint8_t) * deep);
+        if(Config::myconfig->check(tarro.first))
+        P2Pchannel::mychnl->send_data_to(tarro.second, faccess.aes_keys, sizeof(AES_KEY_FSS)*faccess.numKeys);
+        else if(Config::myconfig->check(tarro.second))
+        P2Pchannel::mychnl->recv_data_from(tarro.first, faccess.aes_keys, sizeof(AES_KEY_FSS)*faccess.numKeys);
+        keys = faccess.aes_keys;
         if(!RAND_bytes(s0, 16)) {
             printf("Random bytes failed\n");
             exit(1);
@@ -67,120 +77,103 @@ public:
     ~FSS_MPC(){
         free(gammas);
         free(keys);
-        for(auto ele : sigmas) free(ele);
+        free(sigmas);
+        free(tau0);free(tau1);
+        //for(auto ele : sigmas) free(ele);
     }
+    void send_key_to(std::string targe){
+        /*sigmas gammas, tau0, tau1, s0, t*/
+    }
+    void recv_key_from(std::string targe){
 
+    }
     void gen(T alpha, T beta, uint8_t t_int){
+        is_store = true;
+        uint32_t iter = 0;
         /*transfer beta to bytes*/
         uint8_t betas[16] = {0};
         memcpy(betas, &beta, sizeof(T));
-        uint8_t* s;
+        uint8_t* total_s = (uint8_t*)malloc((1<<(deep+2)) *sizeof(uint8_t)*16);
         uint8_t tt = t_int;
         uint8_t z0[16], z1[16], tao0, tao1;
         
-        uint8_t* next_s = (uint8_t*)malloc(32*sizeof(uint8_t));
-        prf(next_s, s0, 32, keys, 2);
+    
+        prf(total_s, s0, 32, keys, 2);
         for(uint8_t i = 0; i < 16; i ++ ){
-            z0[i] = next_s[i];
-            z1[i] = next_s[i+16];
+            z0[i] = total_s[i];
+            z1[i] = total_s[i+16];
         }
-        s = (uint8_t*)malloc(16*sizeof(uint8_t));
-        memcpy(s, next_s, 16);
-        level.push(s);
-        s = (uint8_t*)malloc(16*sizeof(uint8_t));
-        memcpy(s, next_s + 16, 16);
-        level.push(s);
-        free(next_s);
+        
         tlevel.push(tt);
         tlevel.push(tt);
         for(int i = 0; i < deep; i++){
             uint8_t alphabit = 1&(alpha>>(deep - 1 - i));
-            uint8_t * zetta = (uint8_t*)malloc(16*sizeof(uint8_t));
-            if(i == deep - 1) mpc_block2(z0, z1, alphabit, betas, zetta, gammas, tao0, tao1, tarro);
-            else mpc_block1(z0, z1, alphabit, zetta, tao0, tao1, tarro);
+            if(i == deep - 1) mpc_block2(z0, z1, alphabit, betas, &sigmas[i*16], gammas, tau0[i], tau1[i], tarro);
+            else mpc_block1(z0, z1, alphabit, &sigmas[i*16], tau0[i], tau1[i], tarro);
             
-            sigmas.push_back(zetta);
-            tau0.push_back(tao0);tau1.push_back(tao1);
             memset(z0, 0, 16);memset(z1, 0, 16);
             for(int j = 0; j < (1 << (i+1)); j ++){
-                s = level.front();level.pop();
                 tt = tlevel.front();tlevel.pop();
-                if(i == deep - 1) {free(s); continue;}
-                uint8_t *s0_out = (uint8_t*)malloc(16*sizeof(uint8_t));
-                uint8_t *s1_out = (uint8_t*)malloc(16*sizeof(uint8_t));
                 uint8_t tt_out;
                 
-                if(i == deep - 1) local_block2(s, tt, zetta, gammas, j%2==0?tao0:tao1, s0_out, tt_out);
-                else local_block1(s, tt, zetta, j%2==0?tao0:tao1, s0_out, s1_out, tt_out, keys);
+                if(i == deep - 1) local_block2(&total_s[iter * 16], tt, &sigmas[i*16], gammas, j%2==0?tau0[i]:tau1[i], &total_s[(iter * 2 + 2) * 16], tt_out);
+                else local_block1(&total_s[iter * 16], tt, &sigmas[i*16], j%2==0?tau0[i]:tau1[i], &total_s[(iter * 2 + 2) * 16], &total_s[(iter * 2 + 3) * 16], tt_out, keys);
                 
                 if(i != deep - 1) {
-                    level.push(s0_out);level.push(s1_out);
+   
                     /*计算z0, z1*/
                     for(int i = 0; i < 16; i++){
-                        z0[i] ^= s0_out[i];
-                        z1[i] ^= s1_out[i];
+                        z0[i] ^= total_s[(iter * 2 + 2) * 16 + i];
+                        z1[i] ^= total_s[(iter * 2 + 3) * 16 + i];
                     }
 
                 }else{
                     uint64_t ret;
-                    memcpy(&ret, s0_out, 8);
-                    std::cout<<ret<<"\n";
-                    free(s0_out);free(s1_out);
+                    memcpy(&ret, &total_s[(iter * 2 + 2) * 16], 8);
+                    res_list.push_back(ret);
                 }
                 tlevel.push(tt_out);tlevel.push(tt_out);
-                free(s);
+                iter++;
             }
 
         }
+        free(total_s);
+        printf("lens:%u\n",res_list.size());
         
     }
     void get_list(uint8_t t_int){
-
-        uint8_t* s;
+        if(is_store) return;
         uint8_t tt = t_int;   
-        uint8_t* next_s = (uint8_t*)malloc(32*sizeof(uint8_t));
-        prf(next_s, s0, 32, keys, 2);
-        s = (uint8_t*)malloc(16*sizeof(uint8_t));
-        memcpy(s, next_s, 16);
-        level.push(s);
-        s = (uint8_t*)malloc(16*sizeof(uint8_t));
-        memcpy(s, next_s + 16, 16);
-        level.push(s);
-        free(next_s);
+
+        uint8_t* total_s = (uint8_t*)malloc((1<<(deep+2)) *sizeof(uint8_t)*16);
+        prf(total_s, s0, 32, keys, 2);
+        uint32_t iter = 0;
         tlevel.push(tt);
         tlevel.push(tt);
         for(int i = 0; i < deep; i++){        
             for(int j = 0; j < (1 << (i+1)); j ++){
-                uint8_t *s0_out = (uint8_t*)malloc(16*sizeof(uint8_t));
-                uint8_t *s1_out = (uint8_t*)malloc(16*sizeof(uint8_t));
                 uint8_t tt_out;
-                s = level.front();level.pop();
                 tt = tlevel.front();tlevel.pop();
-
-                if(i == deep - 1) local_block2(s, tt, sigmas[i], gammas, j%2==0?tau0[i]:tau1[i], s0_out, tt_out);
-                else local_block1(s, tt, sigmas[i], j%2==0?tau0[i]:tau1[i], s0_out, s1_out, tt_out, keys);
-                if(i != deep - 1) {
-                    level.push(s0_out);level.push(s1_out);
-
-                }else{
+                if(i == deep - 1) local_block2(&total_s[iter * 16], tt, &sigmas[16*i], gammas, j%2==0?tau0[i]:tau1[i], &total_s[(iter * 2 + 2) * 16], tt_out);
+                else local_block1(&total_s[iter * 16], tt, &sigmas[16*i], j%2==0?tau0[i]:tau1[i], &total_s[(iter * 2 + 2) * 16], &total_s[(iter * 2 + 3) * 16], tt_out, keys);
+                if(i == deep - 1){
                     uint64_t ret;
-                    memcpy(&ret, s0_out, 8);
-                    std::cout<<ret<<"\n";
-                    free(s0_out);free(s1_out);
+                    memcpy(&ret, &total_s[(iter * 2 + 2) * 16], 8);
+                    res_list.push_back(ret);
+                    
                 }
                 tlevel.push(tt_out);tlevel.push(tt_out);
-                free(s);
+                iter++;
             }
 
         }
+        free(total_s);
     }
     void evl(T x, uint8_t t_int){
         uint8_t alphabit = 1&(x>>(deep - 1));
-        uint8_t* s;
+        uint8_t* s, *s1_out;
         uint8_t tt = t_int;   
         uint8_t* next_s = (uint8_t*)malloc(32*sizeof(uint8_t));
-        uint8_t *s0_out = (uint8_t*)malloc(16*sizeof(uint8_t));
-        uint8_t *s1_out = (uint8_t*)malloc(16*sizeof(uint8_t));
         uint8_t tt_out;
         prf(next_s, s0, 32, keys, 2);
         s = (uint8_t*)malloc(16*sizeof(uint8_t));
@@ -188,25 +181,43 @@ public:
             memcpy(s, next_s, 16);
         else
             memcpy(s, next_s + 16, 16);
-        free(next_s);
+        
         for(int i = 0; i < deep; i++){     
-            if(i == deep - 1) local_block2(s, tt, sigmas[i], gammas, alphabit==0?tau0[i]:tau1[i], s0_out, tt_out);
-            else local_block1(s, tt, sigmas[i], alphabit==0?tau0[i]:tau1[i], s0_out, s1_out, tt_out, keys);
+            if(i == deep - 1) local_block2(s, tt, &sigmas[16*i], gammas, alphabit==0?tau0[i]:tau1[i], next_s, tt_out);
+            else local_block1(s, tt, &sigmas[16*i], alphabit==0?tau0[i]:tau1[i], next_s, s1_out, tt_out, keys);
             if(i == deep - 1){
                 uint64_t ret;
-                memcpy(&ret, s0_out, 8);
+                memcpy(&ret, next_s, 8);
                 std::cout<<ret<<"\n";
             }
             alphabit = 1&(x>>(deep - 2 - i));
-            if(alphabit == 0) memcpy(s, s0_out, 16);
-            else memcpy(s, s1_out, 16);
+            if(alphabit == 0) memcpy(s, next_s, 16);
+            else memcpy(s, &next_s[16], 16);
             tt = tt_out;
 
         }
-        free(s0_out);free(s1_out);
+        free(next_s);
         free(s);
     }
 
+};
+class Oram{
+    private:
+    uint32_t data_lens;
+    uint32_t* data_ptr;
+    FSS_MPC<uint32_t> *write0, *write1;
+    uint32_t r1 , r2, v;
+    public:
+    Oram(uint32_t data_lens, uint32_t *data_ptr):data_lens(data_lens),data_ptr(data_ptr){
+        //printf("test--------------\n");
+        write0 = new FSS_MPC<uint32_t>({"player0", "player2"}, get_bits(data_lens));
+        write1 = new FSS_MPC<uint32_t>({"player1", "player3"}, get_bits(data_lens));
+    }
+    ~Oram(){
+        delete write0;delete write1;
+    }
+    void prepare_write(uint16_t ntimes);
+    void write(uint32_t idex, uint32_t target, uint32_t org);
 };
 template< typename T, typename R, uint16_t deep = 32, uint16_t lambda = 16>
 class DCF_MPC{
@@ -327,7 +338,6 @@ class DCF_MPC{
                 free(key);
             }
             uint32_t tmp_t = alpha>>(deep - j);
-            std::cout<<"----------------------testsetset\n";
             mpc_dcf(alphabit, beta, s_L_R, t_L_R, V_L_R,t0, V_alpha, j);
             for(int w = 0; w < (1 << (j - 1)); w ++){
                 uint8_t *out = out_level.front();out_level.pop();

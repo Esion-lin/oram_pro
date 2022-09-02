@@ -2,6 +2,7 @@
 #define _CONFIG_H__
 #include <map>
 #include <fstream>
+#include <set>
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 struct Player{
@@ -18,6 +19,7 @@ inline json load_json(std::string path){
 class Config{
     public:
     std::map<std::string, Player> Pmap;
+    std::set<std::string> Ps;
     Player aid;
     static Config * myconfig;
     Config(std::string path){
@@ -27,7 +29,13 @@ class Config{
         for (auto& el : sub_conf.items()) {
             Pmap[el.key()] = {el.value()["host"].get<std::string>(), el.value()["port"].get<int>()};
         }
+        for(auto& key : Pmap){
+            Ps.insert(key.first);
+        }
         //aid = {config_json["myplayer"]["host"].get<std::string>(), config_json["myplayer"]["port"].get<int>()};
+    }
+    int get_players_num(){
+        return Pmap.size();
     }
     void set_player(std::string st){
         current_player = st;

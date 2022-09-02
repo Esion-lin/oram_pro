@@ -36,8 +36,11 @@ class Pratical_OT{
     public:
     P2Pchannel * p2pchnl;
     std::string st;
+    PRG prg;
     Group *G = nullptr;
 	bool delete_G = true;
+    block *a0 = nullptr, *a1 = nullptr;
+    bool *r = nullptr;
 	Pratical_OT(P2Pchannel * p2pchnl, std::string st, Group * _G = nullptr):p2pchnl(p2pchnl),st(st) {
 		if (_G == nullptr)
 			G = new Group();
@@ -49,10 +52,15 @@ class Pratical_OT{
 	}
     void send(const block* data0, const block* data1, int64_t length, std::string myrole, std::string target);
     void recv(block* data, const bool* b, int64_t length, std::string myrole, std::string target);
-    
+    void gen_rot(int64_t length, std::string sender, std::string recver);
+    void send_with_rot(const block* data0, const block* data1, int64_t length, std::string sender, std::string recver);
+    void recv_with_rot(block* data, const bool* b, int64_t length, std::string sender, std::string recver);
 	~Pratical_OT() {
 		if (delete_G)
 			delete G;
+        if(a0 != nullptr) delete[] a0;
+        if(r != nullptr) delete[] r;
+        if(a1 != nullptr) delete[] a1;
 	}
 };
 class Bitwise{
@@ -74,6 +82,7 @@ class Bitwise{
     std::vector<block*> flagres_set;
     Bitwise(Pratical_OT*ot, std::string st, P2Pchannel*p2pchnl):ot(ot),st(st), p2pchnl(p2pchnl){}
     void run_with_R_A(uint64_t R, uint64_t A, std::string file, std::string sender, std::string recver, uint16_t lens);
+    void prepare_ot(uint32_t lens, std::string sender, std::string recver);
     void to_Y(std::string sender, std::string recver, uint64_t R, uint64_t A, int lens);
     void run(std::string sender, std::string recver, std::string file, uint16_t lens);
     void runs(std::string sender, std::string recver, std::vector<std::string> files, uint16_t lens);

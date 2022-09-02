@@ -10,6 +10,8 @@ void initializeServer(Fss* fServer, Fss* fClient);
 // Runs point(delta) FSS given key on input x for 2 parties/providers
 mpz_class evaluateEq(Fss* f, ServerKeyEq *k, uint64_t x);
 void evaluateEq(Fss* f, ServerKeyEq *k, mpz_class* res, uint32_t lens);
+void evaluateEq_full(Fss* f, ServerKeyEq *k, mpz_class* res, uint32_t lens);
+void evaluateEq(Fss* f, ServerKeyEq *k, uint32_t * res, uint32_t lens);
 // Runs interval(step) FSS given key on input x for 2 parties/providers
 uint64_t evaluateLt(Fss* f, ServerKeyLt *k, uint64_t x);
 
