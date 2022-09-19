@@ -29,12 +29,16 @@ std::vector<mpz_class> Audit_AY::transfer(std::vector<Amaterial> A_data){
     //b_data ^ maskbit
     //spdz2->add(b_data, shared_b2);((revealed_data[j].get_ui() >> i) & 1)
     std::vector<std::vector<uint8_t>> datas(A_data.size());
-    std::vector<uint8_t> temps(A_data.size() * 32);
+    std::vector<uint8_t> temps(A_data.size() * 64);
     for(int i = 0; i < A_data.size(); i++){
         for(int j = 0; j < 32; j++){
-            bmr->Lambda_bits[i* bmr->num_gate + j] = bmr->opened_bits[i* bmr->num_gate + j] ^ ((revealed_data[i].get_ui() >> j) & 1);
+            if(Config::myconfig->check("player0"))
+                bmr->Lambda_bits[i* bmr->num_gate + j] = bmr->maskbits[i* bmr->num_gate + j] ^ ((revealed_data[i].get_ui() >> j) & 1);
+            else
+                bmr->Lambda_bits[i* bmr->num_gate + j] = bmr->maskbits[i* bmr->num_gate + j];
             bmr->Lambda_bits[i* bmr->num_gate + 32 + j] = bmr->maskbits[i* bmr->num_gate + j] ^ b_data[i * 32 + j].b;
-            temps[i * 32 + j] = bmr->Lambda_bits[i* bmr->num_gate + 32 + j];
+            temps[i * 64 + j] = bmr->Lambda_bits[i* bmr->num_gate + j];
+            temps[i * 64 + 32 + j] = bmr->Lambda_bits[i* bmr->num_gate + 32 + j];
         }
         
     }
@@ -44,7 +48,8 @@ std::vector<mpz_class> Audit_AY::transfer(std::vector<Amaterial> A_data){
     for(auto & ele: rets_Lam){
         for(int i = 0; i < A_data.size(); i++){
             for(int j = 0; j < 32; j++){
-                bmr->Lambda_bits[i* bmr->num_gate + 32 + j] ^= temps[i * 32 + j];
+                bmr->Lambda_bits[i* bmr->num_gate + j] ^= temps[i * 64 + j];
+                bmr->Lambda_bits[i* bmr->num_gate + 32 + j] ^= temps[i * 64 + 32 + j];
             }
             
         }
