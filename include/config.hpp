@@ -68,8 +68,13 @@ class Config{
         if(st == "player0") return "player2";
     }
     uint32_t get_idex(){
+        //TODO:
         return current_player[current_player.length() - 1] - '0';
     }
+    static uint32_t get_idex(std::string name){
+        //TODO
+        return name[name.length() - 1] - '0';
+    } 
     uint32_t get_suc_idex(){
         return (get_idex() + 1) % 3;
     }

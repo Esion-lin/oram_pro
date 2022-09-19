@@ -69,7 +69,7 @@ void add_share(std::string owner, std::set<std::string> holders, T* data, uint32
         }
     }
 }
-void add_share(std::string owner, std::set<std::string> holders, mpz_class* data, mpz_class pri, uint32_t lens){  
+inline void add_share(std::string owner, std::set<std::string> holders, mpz_class* data, mpz_class pri, uint32_t lens){  
     if(Config::myconfig->check(owner)){
         mpz_class mydata[lens];
         for(auto player:holders){
@@ -145,6 +145,7 @@ void add_reveal(std::set<std::string> owner, std::set<std::string> holders, T* d
     }
     
 }
+
 template<typename T>
 void add_reveal(std::set<std::string> owner, std::set<std::string> holders, T* data, uint32_t lens,T* data2, uint32_t lens2,T* data3, uint32_t lens3,std::function<T (T, T)>op_cb = [](T a, T b) -> T{return a + b;}){
     P2Pchannel::mychnl->set_flush(false);
