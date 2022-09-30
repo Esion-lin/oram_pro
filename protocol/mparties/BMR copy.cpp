@@ -7,7 +7,6 @@ bool check_equal(block a, block b){
 }
 BMR::BMR(std::string cir_file){
     cf = new BristolFormat(cir_file.c_str());
-    spdz2 = std::make_shared<SPDZXOR>();
     /*cf->n1/n2 -> wires party1/party2 held */
     Ks_pickeds.resize(Config::myconfig->get_players_num());
     maskbits.resize(cf->num_wire);
@@ -34,7 +33,6 @@ BMR::BMR(std::string cir_file){
 }
 BMR::BMR(std::string cir_file, uint32_t lens){
     contained_ = true;
-    spdz2 = std::make_shared<SPDZXOR>();
     cf = new BristolFormat(cir_file.c_str());
     num_gate = cf->num_gate;
     /*cf->n1/n2 -> wires party1/party2 held */
@@ -54,53 +52,15 @@ BMR::BMR(std::string cir_file, uint32_t lens){
         maskbits[i] %= 2;
     }
     
-    in_size = cf->n1 + cf->n2;
+    int itr = cf->n1 + cf->n2;
     for(int k = 0; k < lens; k++)
-    for(int i = 0; i < in_size; i++){
-        RAND_bytes(reinterpret_cast<uint8_t*>(&Ks[2*k*in_size + i * 2]), sizeof(block));
+    for(int i = 0; i < itr; i++){
+        RAND_bytes(reinterpret_cast<uint8_t*>(&Ks[2*k*itr + i * 2]), sizeof(block));
         Ks[2*k*cf->num_wire + i * 2 + 1] = R ^ Ks[2*k*cf->num_wire +  i * 2];
     }
 
 }
-BMR::BMR(std::string cir_file, uint32_t lens, std::string owner){
-    contained_ = true;
-    spdz2 = std::make_shared<SPDZXOR>();
-    cf = new BristolFormat(cir_file.c_str());
-    num_gate = cf->num_gate;
-    /*cf->n1/n2 -> wires party1/party2 held */
-    Ks_pickeds.resize(lens*Config::myconfig->get_players_num());
-    maskbits.resize(lens*cf->num_wire);
-    Amaskbits.resize(lens*cf->num_wire);
-    opened_bits.resize(lens*cf->num_wire);
-    Lambda_bits.resize(lens*cf->num_wire);
-    Ks.resize(lens*cf->num_wire*2);
-    /*
-    random -> maskbits
-    random -> Ks[cf.n1]
-    */
-    RAND_bytes(reinterpret_cast<uint8_t*>(&R), sizeof(block));
-    std::vector<std::pair<mpz_class, mpz_class>> rr0_p;
-    
-        
-        RAND_bytes(maskbits.data(), lens*cf->num_wire);
-        for(int i = 0; i < maskbits.size(); i++){
-            maskbits[i] %= 2;
-            rr0_p.push_back({10+maskbits[i], 23141});
-        }
-    Amaskbits = spdz2->share(maskbits.data(), rr0_p, maskbits.size(), owner);
-    P2Pchannel::mychnl->flush_all();
-    for(int i = 0; i < maskbits.size(); i ++){
-        //Amaskbits[i].b %= 2;
-        maskbits[i] = Amaskbits[i].b;
-    }
-    in_size = cf->n1 + cf->n2;
-    for(int k = 0; k < lens; k++)
-    for(int i = 0; i < in_size; i++){
-        RAND_bytes(reinterpret_cast<uint8_t*>(&Ks[2*k*in_size + i * 2]), sizeof(block));
-        Ks[2*k*cf->num_wire + i * 2 + 1] = R ^ Ks[2*k*cf->num_wire +  i * 2];
-    }
 
-}
 void BMR::online(std::map<std::string, std::pair<int, int>>holder, std::vector<uint8_t> data){
     //holder
     //broad cast \Lambda
@@ -409,17 +369,13 @@ void BMR::online(){
             }
         }
     }
-    
+    std::vector<uint8_t> res;
     for(int w = 0; w < offline_lens; w++){
         for(int i = cf->num_wire - cf->n3; i < cf->num_wire; i++){
-            if(Config::myconfig->check("player0")){
-                if(Lambda_bits[w*num_gate + i])
-                Amaskbits[w*num_gate + i] = spdz2->flap(Amaskbits[w*num_gate + i]);
-            }
-            res.push_back(Amaskbits[w*num_gate + i]);
-            // std::cout<<(uint32_t)(Lambda_bits[w*num_gate + i] ^ opened_bits[w*num_gate + i])<<" ";
+            
+            std::cout<<(uint32_t)(Lambda_bits[w*num_gate + i] ^ opened_bits[w*num_gate + i])<<" ";
         }
-        // std::cout<<std::endl;
+        std::cout<<std::endl;
     }
 }
 
@@ -517,17 +473,13 @@ void BMR::offline(uint32_t lens){
     for(int i = 0; i < cf->num_gate; ++i) {
         if (cf->gates[4*i+3] == XOR_GATE){
             maskbits[num_gate * k + cf->gates[4*i+2]] = maskbits[num_gate * k + cf->gates[4*i]] ^ maskbits[num_gate * k + cf->gates[4*i+1]];
-            Amaskbits[num_gate * k + cf->gates[4*i+2]] = spdz2->add(Amaskbits[num_gate * k + cf->gates[4*i]], Amaskbits[num_gate * k + cf->gates[4*i+1]]);
         }
         else if(cf->gates[4*i+3] == NOT_GATE){
             if(Config::myconfig->check("player0")){
                 maskbits[num_gate * k + cf->gates[4*i+2]] = maskbits[num_gate * k + cf->gates[4*i]]^1;
-                Amaskbits[num_gate * k + cf->gates[4*i+2]] = spdz2->flap(Amaskbits[num_gate * k + cf->gates[4*i]]);
-            }
-            else{
+                }
+            else
                 maskbits[num_gate * k + cf->gates[4*i+2]] = maskbits[num_gate * k + cf->gates[4*i]];
-                Amaskbits[num_gate * k + cf->gates[4*i+2]] = Amaskbits[num_gate * k + cf->gates[4*i]];
-            }
         }
     }
     std::copy(maskbits.begin(), maskbits.end(), opened_bits.begin());

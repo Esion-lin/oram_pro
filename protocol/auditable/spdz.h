@@ -36,30 +36,15 @@ inline bool decommit(mpz_class g, mpz_class h, mpz_class m, mpz_class r, mpz_cla
     // std::cout<< a * b % p << " target "<<target<<std::endl;
     return target == a * b % p;
 }
+
 template<int FIELD_LEN = 32>
 class Commitment{
 public:
-    mpz_class prime, q;
-    std::pair<mpz_class, mpz_class> ele;
+    static bool flag;
+    static mpz_class prime, q;
+    static std::pair<mpz_class, mpz_class> ele;
     Commitment(){
-        init();
-    }
-    void init(){
-        mpz_class k;
-        mpz_ui_pow_ui(q.get_mpz_t(), 2, FIELD_LEN);
-        mpz_nextprime(q.get_mpz_t(), q.get_mpz_t());
-        for(int i = 2;;i++){
-            prime = q * i + 1;
-            if(mpz_probab_prime_p(prime.get_mpz_t(), 50) == 2){
-                k = i;
-                break;
-            }
-                
-        }
-        randomm(ele.first, q);randomm(ele.second, q);
-        mpz_powm(ele.first.get_mpz_t(), ele.first.get_mpz_t(), k.get_mpz_t(), prime.get_mpz_t());
-        mpz_powm(ele.second.get_mpz_t(), ele.second.get_mpz_t(), k.get_mpz_t(), prime.get_mpz_t());
-
+        if(!flag) std::cout<<"run init_ first\n";
     }
     void inv(mpz_class& target, mpz_class m){
         mpz_invert(target.get_mpz_t(), m.get_mpz_t(), prime.get_mpz_t());
@@ -127,6 +112,14 @@ public:
     }
 
 };
+template<int FIELD_LEN>
+bool Commitment<FIELD_LEN>::flag;
+template<int FIELD_LEN>
+mpz_class Commitment<FIELD_LEN>::prime;
+template<int FIELD_LEN>
+mpz_class Commitment<FIELD_LEN>::q;
+template<int FIELD_LEN>
+std::pair<mpz_class, mpz_class> Commitment<FIELD_LEN>::ele;
 template<int FIELD_LEN = 32>
 class XORCommitment{
 public:
@@ -146,6 +139,11 @@ public:
     void cadd(mpz_class& target, mpz_class c1, mpz_class c2){
         pcomm->cadd(target, c1, c2);
     }
+    void flap(mpz_class& target, mpz_class c1){
+        mpz_class temp;
+        pcomm->comit(temp, 1, 0);
+        pcomm->cadd(target, c1, temp);
+    }
     // void scale(mpz_class& target, mpz_class c, mpz_class e){
     //     pcomm->scale(target, c, e);
     // }
@@ -161,7 +159,26 @@ public:
 private:
     Commitment<FIELD_LEN>* pcomm;
     mpz_class prime;
+    
 };
+template<int FIELD_LEN = 32>
+static void init_(){
+    mpz_class k;
+    mpz_ui_pow_ui(Commitment<FIELD_LEN>::q.get_mpz_t(), 2, FIELD_LEN);
+    mpz_nextprime(Commitment<FIELD_LEN>::q.get_mpz_t(), Commitment<FIELD_LEN>::q.get_mpz_t());
+    for(int i = 2;;i++){
+        Commitment<FIELD_LEN>::prime = Commitment<FIELD_LEN>::q * i + 1;
+        if(mpz_probab_prime_p(Commitment<FIELD_LEN>::prime.get_mpz_t(), 50) == 2){
+            k = i;
+            break;
+        }
+            
+    }
+    randomm(Commitment<FIELD_LEN>::ele.first, Commitment<FIELD_LEN>::q);randomm(Commitment<FIELD_LEN>::ele.second, Commitment<FIELD_LEN>::q);
+    mpz_powm(Commitment<FIELD_LEN>::ele.first.get_mpz_t(), Commitment<FIELD_LEN>::ele.first.get_mpz_t(), k.get_mpz_t(), Commitment<FIELD_LEN>::prime.get_mpz_t());
+    mpz_powm(Commitment<FIELD_LEN>::ele.second.get_mpz_t(), Commitment<FIELD_LEN>::ele.second.get_mpz_t(), k.get_mpz_t(), Commitment<FIELD_LEN>::prime.get_mpz_t());
+    Commitment<FIELD_LEN>::flag = true;
+}
 struct Amaterial{
     mpz_class m,r,c;
 };
@@ -215,7 +232,7 @@ class SPDZ{
         //check commit
         if(Config::myconfig->check(owner)){
             std::vector<mpz_class> res(ms_rs, ms_rs + data.size());
-            printf("%d\n", COM->decomits(comts, ms_rs, ms_rs + data.size(), data.size()));
+            // printf("%d\n", COM->decomits(comts, ms_rs, ms_rs + data.size(), data.size()));
 
             return res;
         }else{
@@ -416,10 +433,12 @@ public:
         if(Config::myconfig->check(owner)){
             for(int i = 0; i < data.size(); i++){
                 //r1'[last] == b
-                if(rs[i] % 2 == bs[i] && COM->decomit(comts[i], bs[i], {rs[i] / 2, rs[i + data.size()]})){
-                    printf("pass\n");
-                }else{
-                    std::cout<<"conflicted commit:"<<comts[i]<<" "<<(uint32_t)bs[i]<<" "<<rs[i] / 2<< " "<< rs[i + data.size()]<<std::endl;
+                if(rs[i] % 2 != bs[i]){
+                    std::cout<<"conflicted rs b"<<rs[i]<<" "<<bs[i]<<std::endl;
+                }
+                else if(!COM->decomit(comts[i], bs[i], {rs[i] / 2, rs[i + data.size()]})){
+                    std::cout<<"conflicted commit:"<<comts[i]<<" "<<(uint32_t)bs[i]<<" "<<rs[i]<< " "<< rs[i + data.size()]<<std::endl;
+                    // printf("pass\n");
                 }
             }
         }
@@ -436,6 +455,18 @@ public:
             rets.push_back(tmp);
         }
         return rets;
+    }
+    Xmaterial add(const Xmaterial a, const Xmaterial b){
+        mpz_class cc;
+        COM->cadd(cc, a.c, b.c);
+        Xmaterial tmp = {(a.b ^ b.b), {(a.r_plus.first + b.r_plus.first) % prime, (a.r_plus.second + b.r_plus.second) % prime},cc};
+        return tmp;
+    }
+    Xmaterial flap(const Xmaterial a){
+        mpz_class cc;
+        COM->flap(cc, a.c);
+        Xmaterial tmp = {(a.b ^ 1), {(a.r_plus.first + 1) % prime, a.r_plus.second },cc};
+        return tmp;
     }
     template<uint32_t mpzsize = 8>
     std::vector<Xmaterial> mult(const std::vector<Xmaterial> &a, const std::vector<Xmaterial> &b){

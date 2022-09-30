@@ -110,10 +110,10 @@ if(TEST_AUDI)
     message("enable audi") 
     include_directories(protocol/auditable)
     include_directories(protocol/mparties)
-    add_library(bmr protocol/mparties/BMR.cpp)
-    add_library(audit protocol/auditable/auditable.cc)
+    #add_library(bmr protocol/mparties/BMR.cpp)
+    add_library(audit protocol/mparties/BMR.cpp protocol/auditable/auditable.cc)
     add_executable(test_audit protocol/auditable/test.cpp)
-    target_link_libraries(test_audit PRIVATE gmp gmpxx ${OPENSSL_LIBRARIES} log encoder bmr audit)
+    target_link_libraries(test_audit PUBLIC gmp gmpxx ${OPENSSL_LIBRARIES} log encoder  audit)
 endif()
 
 

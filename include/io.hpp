@@ -99,7 +99,7 @@ void add_reveal(std::string owner, std::set<std::string> holders, mpz_class* dat
                 P2Pchannel::mychnl->recv_data_from(player, temp, lens*trans);
                 
                 byte2mpz<>(temp2, temp, lens);
-                std::cout<<player<< temp2[0] <<std::endl;
+                // std::cout<<player<< temp2[0] <<std::endl;
                 array_op<mpz_class>([pri](mpz_class a, mpz_class b) -> mpz_class{return (a + b) % pri;}, temp2, data, data, lens);
                 
             }
@@ -107,7 +107,7 @@ void add_reveal(std::string owner, std::set<std::string> holders, mpz_class* dat
     }else{
         memset(temp, 0, sizeof(uint8_t)*lens * trans);
         mpz2byte<>(temp, data, lens);
-        std::cout<< data[0] <<std::endl;
+        // std::cout<< data[0] <<std::endl;
         for(auto& player: holders){
             if( Config::myconfig->check(player)){
                 P2Pchannel::mychnl->send_data_to(owner, temp, lens*trans);

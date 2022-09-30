@@ -9,6 +9,7 @@ Config* Config::myconfig;
 P2Pchannel* P2Pchannel::mychnl;
 INITIALIZE_EASYLOGGINGPP
 int main(int argc, char** argv){
+    init_<>();
     Config::myconfig = new Config("./3_p_config.json");
     P2Pchannel::mychnl = new P2Pchannel(Config::myconfig->Pmap, argv[1]);
     Config::myconfig->set_player(argv[1]);
@@ -53,7 +54,7 @@ int main(int argc, char** argv){
     printf("%d\n", xcom->decomit(t3, b1 ^ 1, {r1_ + b1*1,r1}));
 
     std::cout<< "---------------test SPDZ-------------\n";
-    int data_len = 100;
+    int data_len = 31;
     float test_spdz1[data_len], test_spdz2[data_len], test_spdz3[data_len],test_spdz4[data_len];
     mpz_class data[data_len], data2[data_len], rr[data_len], rr2[data_len];
     test_spdz2[0] = 1;
@@ -86,30 +87,34 @@ int main(int argc, char** argv){
     }
     
     std::cout<< "---------------test BMR-------------\n";
-    std::shared_ptr<BMR> bmr = std::make_shared<BMR>("../cir/zero_check.txt", 16);
-    bmr->offline(16);
-    P2Pchannel::mychnl->flush_all();
-    std::cout<< "---------------test offline done-------------\n";
-    std::map<std::string, std::pair<int, int>>holder;
-    holder["player0"] = {0, 32};
-    holder["player1"] = {0, 0};
-    holder["player2"] = {0, 0};
-    std::vector<std::vector<uint8_t>> bmr_data;
-    if(Config::myconfig->check("player0")){
-        for(int j = 0; j < 16; j++){
-            std::vector<uint8_t> temp_bmr;
-            for(int i = 0; i < 32; i ++) temp_bmr.push_back(0);
-            temp_bmr[j] = 1;
-            bmr_data.push_back(temp_bmr);
-        }
+    // std::shared_ptr<BMR> bmr = std::make_shared<BMR>("../cir/or_32.txt", 16);
+    // bmr->offline(16);
+    // P2Pchannel::mychnl->flush_all();
+    // std::cout<< "---------------test offline done-------------\n";
+    // std::map<std::string, std::pair<int, int>>holder;
+    // holder["player0"] = {0, 32};
+    // holder["player1"] = {32, 64};
+    // holder["player2"] = {0, 0};
+    // std::vector<std::vector<uint8_t>> bmr_data;
+    // if(Config::myconfig->check("player0")){
+    //     for(int j = 0; j < 16; j++){
+    //         std::vector<uint8_t> temp_bmr;
+    //         for(int i = 0; i < 32; i ++) temp_bmr.push_back(0);
+    //         temp_bmr[j] = 1;
+    //         bmr_data.push_back(temp_bmr);
+    //     }
         
-    }
-    if(Config::myconfig->check("player1") ){
-        // for(int i = 0; i < 32; i ++) bmr_data.push_back(0);
-        // bmr_data[1] = 1;
-    }
-    bmr->online(holder, bmr_data, 16);
-    P2Pchannel::mychnl->flush_all();
+    // }
+    // if(Config::myconfig->check("player1") ){
+    //     for(int j = 0; j < 16; j++){
+    //         std::vector<uint8_t> temp_bmr;
+    //         for(int i = 0; i < 32; i ++) temp_bmr.push_back(0);
+    //         temp_bmr[j] = 1;
+    //         bmr_data.push_back(temp_bmr);
+    //     }
+    // }
+    // bmr->online(holder, bmr_data, 16);
+    // P2Pchannel::mychnl->flush_all();
 
     std::cout<< "---------------test SPDZ2-------------\n";
 
@@ -122,20 +127,60 @@ int main(int argc, char** argv){
         rr1_p.push_back({rr1_plus[i], spd_rr2[i]});
     }
     std::vector<Xmaterial> shared_b1 = spdz2->share(bb0, rr0_p, 2, "player0");
-    std::vector<Xmaterial> shared_b2 = spdz2->share(bb1, rr1_p, 2, "player0");
+    //std::vector<Xmaterial> shared_b2 = spdz2->share(bb1, rr1_p, 2, "player0");
+    std::vector<Xmaterial> shared_b2;
+    if(Config::myconfig->check("player0")){
+        shared_b2.push_back(spdz2->flap(shared_b1[0]));
+        shared_b2.push_back(spdz2->flap(shared_b1[1]));
+    }else{
+        shared_b2.push_back(shared_b1[0]);
+        shared_b2.push_back(shared_b1[1]);
+    }
+    
     std::vector<Xmaterial> shared_b3 = spdz2->add(shared_b1, shared_b2);
-    std::vector<uint8_t> revealed_b = spdz2->reveal(shared_b3, "player0");
+    std::vector<uint8_t> revealed_b = spdz2->reveal(shared_b2, "player0");
     std::cout<<(uint32_t)revealed_b[0]<< " " <<(uint32_t)revealed_b[1]<<std::endl;
 
 
     std::cout<<"------------------test auditable---------------\n";
     std::shared_ptr<Audit_AY> audit = std::make_shared<Audit_AY>();
+    mpz_class threshold = Commitment<>::q/2;
+    uint32_t threshold_t = threshold.get_ui();
     audit->offline(data_len);
     for(int i = 0; i < data_len; i ++){
-        test_spdz1[i] = 1<<i;
-        shared_data1 = spdz->share(data, rr, data_len, "player0");
+        data[i] = i + 16;
+        std::cout<<data[i]<<" ";
     }
-    audit->transfer(shared_data1);
+    std::cout<<threshold<<std::endl;
+    shared_data1 = spdz->share(data, rr, data_len, "player0");
+    std::vector<Xmaterial> res = audit->transfer(shared_data1);
+    std::cout<<"------------------test compare---------------\n";
+    audit->run_cir_offline("../cir/comparator_32bit_unsigned_lteq.txt", data_len);
+    
+    // std::cout<<"p/2 "<<threshold_t<<std::endl;
+    std::vector<Xmaterial> maskbits = audit->get_mask(data_len);
+    std::vector<Xmaterial> in_data;
+    for(int i = 0; i < data_len; i++){
+        for(int j = 0; j < 32; j++){
+            in_data.push_back(audit->spdz2->add(res[i * 32 + j], maskbits[i * 64 + j]));
+        }
+        for(int j = 0; j < 32; j++){
+            if((threshold_t>>j) % 2 == 1 && Config::myconfig->check("player0")){
+                in_data.push_back(audit->spdz2->flap(maskbits[i * 64 + 32 + j]));
+            }else{
+                in_data.push_back(maskbits[i * 64 + 32 + j]);
+            }
+        }
+        
+    }
+    std::vector<uint8_t> in_data_x = audit->spdz2->reveal(in_data, "player0");
+    std::vector<Xmaterial> last_ret = audit->run_cir(in_data_x);
+    std::cout<<"---------done---------\n";
+    revealed_b = spdz2->reveal(last_ret, "player0");
+    for(auto & ele : revealed_b){
+        std::cout<<(int)ele<<" ";
+    }
+    std::cout<<std::endl;
     // EC_KEY *key=EC_KEY_new();
     // EC_GROUP *group = EC_GROUP_new_by_curve_name(NID_sm2);
 

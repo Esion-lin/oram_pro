@@ -17,8 +17,6 @@ class BMR{
     uint32_t in_size;
     BristolFormat *cf;
     std::vector<uint8_t> maskbits;
-    std::vector<Xmaterial> Amaskbits;
-    std::vector<Xmaterial> res;
     std::vector<uint8_t> opened_bits;
     std::vector<uint8_t> Lambda_bits;
     std::vector<block> Ks;
@@ -30,7 +28,6 @@ class BMR{
     block R;
     BMR(std::string cir_file);
     BMR(std::string cir_file, uint32_t lens);
-    BMR(std::string cir_file, uint32_t lens, std::string owner);
     //from share
     void online();
     
@@ -49,7 +46,6 @@ class BMR{
         delete cf;
     }
     private:
-    std::shared_ptr<SPDZXOR> spdz2;
     bool contained_ = false;
     uint32_t offline_lens;
     
