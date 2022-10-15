@@ -4,6 +4,7 @@
 #include <utility>
 #include <openssl/rand.h>
 #include <stack>
+#include "timer.hpp"
 #include "io.hpp"
 #define MOD_SUB(a, b, pri) a + pri - b % pri
 #define MOD_ADD(a, b, pri) a + b % pri
@@ -244,10 +245,23 @@ class SPDZ{
         std::vector<Amaterial> rets;
         for(int i = 0; i < a.size(); i++){
             mpz_class cc;
+            Timer::record("verify");
             COM->cadd(cc, a[i].c, b[i].c);
+            Timer::stop("verify");
             Amaterial tmp = {(a[i].m + b[i].m) % prime, (a[i].r + b[i].r) % prime,cc};
             rets.push_back(tmp);
         }
+        return rets;
+    }
+    Amaterial sum(Amaterial* a, uint32_t lens){
+        Amaterial rets = a[0];
+        Timer::record("verify");
+        for(int i = 1; i < lens; i++){
+            mpz_class cc;
+            COM->cadd(cc, a[i].c, rets.c);
+            Amaterial tmp = {(a[i].m + rets.m) % prime, (a[i].r + rets.r) % prime,cc};
+        }
+        Timer::stop("verify");
         return rets;
     }
     std::vector<Amaterial> neg(const std::vector<Amaterial> &a){
@@ -277,11 +291,13 @@ class SPDZ{
             alphas_beta_r[i] = MOD_SUB(a[i].r, std::get<0>(triples[i]).r, prime);
             alphas_beta_r[i + a.size()] = MOD_SUB(b[i].r, std::get<1>(triples[i]).r, prime);
             if(Config::myconfig->check(verifier)){
+                Timer::record("verify");
                 mpz_class inv_temp,inv_temp2;
                 COM->inv(inv_temp, std::get<0>(triples[i]).c);
                 COM->cadd(comits[i], a[i].c, inv_temp);
                 COM->inv(inv_temp2, std::get<1>(triples[i]).c);
                 COM->cadd(comits[i + a.size()], b[i].c, inv_temp2);
+                Timer::stop("verify");
             }
         }
         //open
@@ -291,39 +307,41 @@ class SPDZ{
         //     tttt.push_back({alphas_beta[i], alphas_beta_r[i], comits[i]});
         // }
         // std::cout<<"opend "<<reveal(tttt, verifier)[0]<<std::endl;
-        uint8_t temp[alphas_beta.size() * mpzsize] = {0};
-        uint8_t temp2[alphas_beta_r.size() * mpzsize] = {0};
+        uint8_t temp[alphas_beta.size() * mpzsize * 2] = {0};
+        //uint8_t temp2[alphas_beta_r.size() * mpzsize] = {0};
         mpz2byte<mpzsize>(temp, alphas_beta.data(), 2 * a.size());
-        mpz2byte<mpzsize>(temp2, alphas_beta_r.data(), 2 * a.size());
-        P2Pchannel::mychnl->bloadcast(temp, 2 * a.size()* mpzsize);
+        mpz2byte<mpzsize>(temp + alphas_beta.size() * mpzsize, alphas_beta_r.data(), 2 * a.size());
+        P2Pchannel::mychnl->bloadcast(temp, 4 * a.size()* mpzsize);
         
-        std::map<std::string, std::vector<uint8_t>> rets = P2Pchannel::mychnl->recv_all(2 * a.size()* mpzsize);
-        P2Pchannel::mychnl->bloadcast(temp2, 2 * a.size()* mpzsize);
-        std::map<std::string, std::vector<uint8_t>> ret_rs = P2Pchannel::mychnl->recv_all(2 * a.size()* mpzsize);
+        std::map<std::string, std::vector<uint8_t>> rets = P2Pchannel::mychnl->recv_all(4 * a.size()* mpzsize);
+        // P2Pchannel::mychnl->bloadcast(temp2, 2 * a.size()* mpzsize);
+        // std::map<std::string, std::vector<uint8_t>> ret_rs = P2Pchannel::mychnl->recv_all(2 * a.size()* mpzsize);
         
         for(auto & ele: rets){
-            mpz_class temp_mpz[a.size() * 2];
-            byte2mpz<mpzsize>(temp_mpz, ele.second.data(), 2 * a.size());
+            mpz_class temp_mpz[a.size() * 4];
+            byte2mpz<mpzsize>(temp_mpz, ele.second.data(), 4 * a.size());
             for(int i = 0; i < a.size() * 2; i++){
                 alphas_beta[i] = (alphas_beta[i] + temp_mpz[i]) % prime;
-                
+                alphas_beta_r[i] = (alphas_beta_r[i] + temp_mpz[i + a.size() * 2]) % prime;
             }
             
         }
-        for(auto & ele: ret_rs){
-            mpz_class temp_mpz[a.size() * 2];
-            byte2mpz<mpzsize>(temp_mpz, ele.second.data(), 2 * a.size());
-            for(int i = 0; i < a.size() * 2; i++){
-                alphas_beta_r[i] = (alphas_beta_r[i] + temp_mpz[i]) % prime;
-            }
+        // for(auto & ele: ret_rs){
+        //     mpz_class temp_mpz[a.size() * 2];
+        //     byte2mpz<mpzsize>(temp_mpz, ele.second.data(), 2 * a.size());
+        //     for(int i = 0; i < a.size() * 2; i++){
+        //         alphas_beta_r[i] = (alphas_beta_r[i] + temp_mpz[i]) % prime;
+        //     }
             
-        }
+        // }
         // for(int i = 0; i < a.size() * 2; i++){
         //     std::cout<<"opend "<<alphas_beta[i]<<" "<<alphas_beta_r[i]<<std::endl;
         // }
         //decommit
         if(Config::myconfig->check(verifier)){
+            Timer::record("verify");
             printf("%d\n", COM->decomits(comits, alphas_beta.data(), alphas_beta_r.data(), a.size() * 2));
+            Timer::stop("verify");
         }
         //y(x-a) + x(y-b) + ab - (x -a )(y-b)
         for(int i = 0; i < a.size(); i++){
@@ -338,10 +356,12 @@ class SPDZ{
             //     res[i].r = MOD_SUB(res[i].r, alphas_beta[i] * alphas_beta[i + a.size()], prime);
             // }
             //for comits
+            Timer::record("verify");
             res[i].c = COM->cadd(
                 COM->cadd(COM->scale(b[i].c, alphas_beta[i]), COM->scale(a[i].c, alphas_beta[i + a.size()])), 
                 COM->padd( std::get<2>(triples[i]).c, prime - (alphas_beta[i] * alphas_beta[i + a.size()] % prime))
                 );
+            Timer::stop("verify");
         }
         P2Pchannel::mychnl->flush_all();
         return res;
@@ -430,18 +450,20 @@ public:
         add_reveal<>(owner, Config::myconfig->Ps, rs, prime, data.size() * 2);
         add_reveal<uint8_t>(Config::myconfig->Ps, Config::myconfig->Ps, bs, data.size(), [](uint8_t a, uint8_t b) -> uint8_t{return a ^ b;});
         //check commit
+        Timer::record("bit2Averify");
         if(Config::myconfig->check(owner)){
             for(int i = 0; i < data.size(); i++){
                 //r1'[last] == b
                 if(rs[i] % 2 != bs[i]){
-                    std::cout<<"conflicted rs b"<<rs[i]<<" "<<bs[i]<<std::endl;
+                    //std::cout<<"conflicted rs b"<<rs[i]<<" "<<bs[i]<<std::endl;
                 }
-                else if(!COM->decomit(comts[i], bs[i], {rs[i] / 2, rs[i + data.size()]})){
-                    std::cout<<"conflicted commit:"<<comts[i]<<" "<<(uint32_t)bs[i]<<" "<<rs[i]<< " "<< rs[i + data.size()]<<std::endl;
+                if(!COM->decomit(comts[i], bs[i], {rs[i] / 2, rs[i + data.size()]})){
+                    //std::cout<<"conflicted commit:"<<comts[i]<<" "<<(uint32_t)bs[i]<<" "<<rs[i]<< " "<< rs[i + data.size()]<<std::endl;
                     // printf("pass\n");
                 }
             }
         }
+        Timer::stop("bit2Averify");
         std::vector<uint8_t> res(bs, bs + data.size());
         return res;
     }

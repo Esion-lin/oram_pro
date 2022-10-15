@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 3.12)
 project(ram_mpc_dt)
 SET(CMAKE_BUILD_TYPE "Debug")  
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 #SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -g2 -ggdb -g -O2")
 SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -Wall -g2 -ggdb -fsanitize=address -fno-omit-frame-pointer -g -O2")   
 SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")  
 SET(CMAKE_EXE_LINKER_FLAGS 
           "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/usr/local/lib")
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/salticidae/cmake/Modules/")
 add_definitions(-DNEED_MUL -DNEED_CMOV -DTotal_bitwise -w)
 
 IF (CMAKE_BUILD_TYPE STREQUAL Debug)        
@@ -46,12 +48,19 @@ include(cmake/log.cmake)
 include(cmake/json.cmake)
 include(cmake/emp.cmake)
 include(cmake/empot.cmake)
+#include(cmake/salticidae.cmake)
 include_directories(include)
 
 include_directories(protocol)
 include_directories(protocol/3_parties)
 include_directories(protocol/2_parties)
 include_directories(encoding)
+
+
+add_subdirectory(salticidae)
+include_directories(salticidae/include)
+
+
 add_library(encoder encoding/encoder.cc)
 if (ENABLE_FFS)
     message("enable ffs") 
@@ -113,10 +122,13 @@ if(TEST_AUDI)
     #add_library(bmr protocol/mparties/BMR.cpp)
     add_library(audit protocol/mparties/BMR.cpp protocol/auditable/auditable.cc)
     add_executable(test_audit protocol/auditable/test.cpp)
+    add_executable(test_audit2 src/test_auditable.cpp)
     target_link_libraries(test_audit PUBLIC gmp gmpxx ${OPENSSL_LIBRARIES} log encoder  audit)
+    target_link_libraries(test_audit2 PUBLIC gmp gmpxx ${OPENSSL_LIBRARIES} log encoder  audit)
 endif()
 
-
+add_executable(test_asyn src/test_asyn_net.cpp)
+target_link_libraries(test_asyn PUBLIC salticidae_static)
 
 
 # 

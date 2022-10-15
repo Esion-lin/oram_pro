@@ -6,3 +6,4 @@ add_pkg(easyloggingpp
 include_directories(${easyloggingpp_INC}src/)
 message("include path:${easyloggingpp_INC}src")
 add_library(log ${easyloggingpp_INC}src/easylogging++.cc)
+

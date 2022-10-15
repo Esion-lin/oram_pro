@@ -26,4 +26,4 @@ private:
 
 //app
 std::vector<Amaterial> relu(std::vector<Amaterial> arr);
-
+std::vector<Amaterial> bit2A(std::vector<Xmaterial> arr, std::shared_ptr<SPDZXOR> temp);

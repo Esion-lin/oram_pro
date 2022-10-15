@@ -1,4 +1,5 @@
 #include "BMR.h"
+#include "timer.hpp"
 bool check_equal(block a, block b){
     return _mm_test_all_ones(_mm_cmpeq_epi8(a,b));
     // __m128i vcmp = (__m128i)_mm_cmpneq_ps(a, b); // compare a, b for inequality
@@ -307,6 +308,7 @@ void BMR::online(){
     // std::cout<<(uint32_t)reinterpret_cast<uint8_t*>(Ks_pickeds[Config::myconfig->get_idex()].data())[0]<<" \n";
     P2Pchannel::mychnl->bloadcast(reinterpret_cast<uint8_t*>(temp_blk), offline_lens*itr * sizeof(block));
     std::map<std::string, std::vector<uint8_t>> rets  = P2Pchannel::mychnl->recv_all(offline_lens*itr * sizeof(block));
+    
     for(auto & ele : rets){
         // std::cout<<"idex"<<Config::get_idex(ele.first)<<std::endl;
         Ks_pickeds[Config::get_idex(ele.first)].resize(cf->num_wire * offline_lens);

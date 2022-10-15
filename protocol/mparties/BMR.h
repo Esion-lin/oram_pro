@@ -32,7 +32,7 @@ class BMR{
     BMR(std::string cir_file, uint32_t lens);
     BMR(std::string cir_file, uint32_t lens, std::string owner);
     //from share
-    void online();
+    void online(bool verify = false);
     
     void online(std::map<std::string, std::pair<int, int>>holder, std::vector<uint8_t> data);
     void online(std::map<std::string, std::pair<int, int>>holder, std::vector<std::vector<uint8_t>> datas, uint32_t lens);

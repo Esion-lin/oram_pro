@@ -91,7 +91,7 @@ std::vector<Xmaterial> Audit_AY::run_cir(std::vector<uint8_t> data){
             tbmr->Lambda_bits[i* bmr->num_gate + j] = data[i * tbmr->in_size + j];
         }
     }
-    tbmr->online();
+    tbmr->online(true);
     P2Pchannel::mychnl->flush_all();
     return tbmr->res;
 }
@@ -133,4 +133,17 @@ std::vector<Amaterial> relu(std::vector<Amaterial> arr){
     std::vector<uint8_t> revealed_b = audit->spdz2->reveal(last_ret, "player0");
 
     return arr;
+}
+
+std::vector<Amaterial> bit2A(std::vector<Xmaterial> arr, std::shared_ptr<SPDZXOR> temp){
+    //offline
+    Timer::record("bit2A");
+    std::vector<Xmaterial> alpha(arr.size());
+    std::vector<Amaterial> beta(arr.size());
+    std::vector<Xmaterial> gama = temp->add(arr, alpha);
+    temp->reveal(gama, "player0");
+    Timer::stop("bit2A");
+    return beta;
+
+    
 }

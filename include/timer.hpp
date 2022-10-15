@@ -1,6 +1,6 @@
 #ifndef _TIMERS_H__
 #define _TIMERS_H__
-#include <time.h>
+#include <sys/time.h>
 #include <string.h>
 #include <iostream>
 #include <fstream>  
