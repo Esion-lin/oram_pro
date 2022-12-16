@@ -167,14 +167,16 @@ static void init_(){
     mpz_class k;
     mpz_ui_pow_ui(Commitment<FIELD_LEN>::q.get_mpz_t(), 2, FIELD_LEN);
     mpz_nextprime(Commitment<FIELD_LEN>::q.get_mpz_t(), Commitment<FIELD_LEN>::q.get_mpz_t());
-    for(int i = 2;;i++){
-        Commitment<FIELD_LEN>::prime = Commitment<FIELD_LEN>::q * i + 1;
-        if(mpz_probab_prime_p(Commitment<FIELD_LEN>::prime.get_mpz_t(), 50) == 2){
-            k = i;
-            break;
-        }
+    Commitment<FIELD_LEN>::prime = Commitment<FIELD_LEN>::q * 2 + 1;
+    // for(int i = 2;;i++){
+    //     Commitment<FIELD_LEN>::prime = Commitment<FIELD_LEN>::q * i + 1;
+    //     if(mpz_probab_prime_p(Commitment<FIELD_LEN>::prime.get_mpz_t(), 50) == 2){
+    //         k = i;
+    //         break;
+    //     }
             
-    }
+    // }
+    randomm(k, Commitment<FIELD_LEN>::q);
     randomm(Commitment<FIELD_LEN>::ele.first, Commitment<FIELD_LEN>::q);randomm(Commitment<FIELD_LEN>::ele.second, Commitment<FIELD_LEN>::q);
     mpz_powm(Commitment<FIELD_LEN>::ele.first.get_mpz_t(), Commitment<FIELD_LEN>::ele.first.get_mpz_t(), k.get_mpz_t(), Commitment<FIELD_LEN>::prime.get_mpz_t());
     mpz_powm(Commitment<FIELD_LEN>::ele.second.get_mpz_t(), Commitment<FIELD_LEN>::ele.second.get_mpz_t(), k.get_mpz_t(), Commitment<FIELD_LEN>::prime.get_mpz_t());
@@ -233,8 +235,9 @@ class SPDZ{
         //check commit
         if(Config::myconfig->check(owner)){
             std::vector<mpz_class> res(ms_rs, ms_rs + data.size());
-            // printf("%d\n", COM->decomits(comts, ms_rs, ms_rs + data.size(), data.size()));
-
+            Timer::record("reveal verify");
+            printf("%d\n", COM->decomits(comts, ms_rs, ms_rs + data.size(), data.size()));
+            Timer::stop("reveal verify");
             return res;
         }else{
             std::vector<mpz_class> res;
@@ -363,7 +366,7 @@ class SPDZ{
                 );
             Timer::stop("verify");
         }
-        P2Pchannel::mychnl->flush_all();
+        
         return res;
     }
     void prepare(uint32_t lens){
@@ -413,6 +416,7 @@ public:
     std::vector<Xmaterial> share(uint8_t* data, std::vector<std::pair<mpz_class,mpz_class>> rs, const uint32_t lens, std::string owner){
         //rs -> r'
         /*该方法可能会改写data*/
+        if(Config::myconfig->check(owner))
         assert(lens == rs.size());
         std::vector<mpz_class> comts(lens), rs_p(lens * 2);
         std::vector<Xmaterial> shared_data;
@@ -422,11 +426,12 @@ public:
                 // std::cout<<"commit:"<<comts[i]<<" "<<(uint32_t)data[i]<<" "<<rs[i].first / 2<< " "<< rs[i].second<<std::endl;
                 
             }
+            for(int i = 0; i < lens; i++){
+                rs_p[i] = rs[i].first;
+                rs_p[i + rs.size()] = rs[i].second;
+            }
         }
-        for(int i = 0; i < lens; i++){
-            rs_p[i] = rs[i].first;
-            rs_p[i + rs.size()] = rs[i].second;
-        }
+        
         add_share(owner, Config::myconfig->Ps, rs_p.data(), prime, 2*lens);
         add_share<uint8_t>(owner, Config::myconfig->Ps, data, lens, 
             [](uint8_t a, uint8_t b) -> uint8_t{return a ^ b;}, [](uint8_t a, uint8_t b) -> uint8_t{return a ^ b;});
@@ -508,16 +513,30 @@ public:
                 COM->cadd(comits[i + a.size()], b[i].c, std::get<1>(triples[i]).c);
             }
         }
-        P2Pchannel::mychnl->bloadcast(alphas_beta.data(), 2 * a.size());
-        std::map<std::string, std::vector<uint8_t>> rets  = P2Pchannel::mychnl->recv_all(2 * a.size());
+        // uint8_t temp[alphas_beta.size() * mpzsize  + alphas_beta.size()] = {0};
+        // memcpy(temp, alphas_beta.data(), alphas_beta.size());
+        // mpz2byte<mpzsize>(temp + alphas_beta.size(), alphas_beta_r.data(), alphas_beta.size());
+        P2Pchannel::mychnl->bloadcast(alphas_beta.data(), alphas_beta.size() );
+        std::map<std::string, std::vector<uint8_t>> rets  = P2Pchannel::mychnl->recv_all(alphas_beta.size() );
         for(auto & ele: rets){
+            // mpz_class temp_mpz[a.size() * 2];
+            // byte2mpz<mpzsize>(temp_mpz, ele.second.data() + alphas_beta.size(), 2 * a.size());
             for(int i = 0; i < a.size() * 2; i++){
                 alphas_beta[i] = alphas_beta[i] ^ ele.second[i];
-                
+                // alphas_beta_r[i] = (alphas_beta_r[i] + temp_mpz[i]) % prime;
             }
+        }
+        if(Config::myconfig->check(verifier)){
+            Timer::record("verify");
+            for(int i = 0; i < alphas_beta.size(); i ++){
+                COM->decomit(comits[i], alphas_beta[i], alphas_beta_r[i]);
+            }
+            
+            Timer::stop("verify");
         }
         for(int i = 0; i < a.size(); i++){
             res[i].b = (b[i].b * alphas_beta[i] ^ a[i].b * alphas_beta[i + a.size()] ^ std::get<2>(triples[i]).b);
+            
         }
         return res;
     }
