@@ -1,0 +1,3 @@
+#include "semi.h"
+
+ShareA::
