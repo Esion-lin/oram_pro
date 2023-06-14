@@ -1,8 +1,4 @@
 #include <spdz.h>
-#include <openssl/ec.h>
-#include <openssl/ecdsa.h>
-#include <openssl/evp.h>
-#include "BMR.h"
 #include "encoder.h" 
 #include "auditable.h"
 #include "timer.hpp"
@@ -23,12 +19,8 @@ int main(int argc, char** argv){
     Config::myconfig->set_player(argv[1]);
     std::shared_ptr<SPDZ> spdz = std::make_shared<SPDZ>();
     std::shared_ptr<SPDZXOR> spdz2 = std::make_shared<SPDZXOR>();
-    int tree_deep = 2;
-    int tree_node = (2 << (tree_deep - 1)) - 1;
     int data_len = 1024 * 16;
-
     uint8_t *data = new uint8_t[data_len];
-    
     mpz_class *rr = new mpz_class[data_len];
     mpz_class *rr_plus = new mpz_class[data_len];
     std::vector<std::pair<mpz_class, mpz_class>> rr_p;

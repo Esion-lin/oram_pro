@@ -52,7 +52,7 @@ class Timer{
         //outFile.open(path, ios::app);
         for(auto ele:times){
             
-            printf("%s: %lf seconds\n", ele.first.c_str(), ele.second);
+            printf("%s: %lf seconds\n", ele.first.c_str(), ele.second * 1000);
             //if(ele.first == "mpc_write_total" || ele.first == "mpc_write_online"){outFile << ele.second * 1000 << ',';}
             // if(ele.first == "init") outFile << ele.second << ',';
 

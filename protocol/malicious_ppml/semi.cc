@@ -1,3 +1,5 @@
 #include "semi.h"
 
-ShareA::
+bool ShareA(){
+    
+}

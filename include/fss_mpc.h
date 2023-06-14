@@ -138,7 +138,7 @@ public:
 
         }
         free(total_s);
-        printf("lens:%u\n",res_list.size());
+        //printf("lens:%u\n",res_list.size());
         
     }
     void get_list(uint8_t t_int){

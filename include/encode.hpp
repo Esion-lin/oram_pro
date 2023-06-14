@@ -16,21 +16,7 @@ class Encode{
 
 
 };
-template <typename T, uint32_t precision>
-class FloatEncode{
-    public:
-    T threshold;
-    Encode(){
-        threshold = (T)(1 << (sizeof(T)*8 - 1));
-    }
-    T encode(float value){
-        return (T)(value  *  (1 << precision));
-    }
-    float decode(T value){
-        return (float)value / (1 << precision);
-    }
 
-};
 class Bitmap{
     public:
     char* data;

@@ -20,7 +20,7 @@ using std::string;
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "easylogging++.h"
+//#include "easylogging++.h"
 namespace net {
 const static int NETWORK_BUFFER_SIZE2 = 1024*128;
 const static int NETWORK_BUFFER_SIZE = 128*1024*1024;
@@ -306,7 +306,7 @@ class P2Pchannel{
 			#ifdef DISK_NET
 			#endif
 		}
-		LOG(INFO) << "P2Pchannel construction done"<<std::endl;
+		// LOG(INFO) << "P2Pchannel construction done"<<std::endl;
 	}
 	void set_flush(bool flush_t){
 		is_flush = flush_t;
