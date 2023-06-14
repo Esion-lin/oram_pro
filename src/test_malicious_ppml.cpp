@@ -48,7 +48,7 @@ int main(int argc, char** argv){
         //     printf("%" PRIu64 " ", tar_data[i]);
             
         // }
-        // printf("\n ---------result--------- \n");
+        printf("\n ---------result--------- \n");
         for(int i = 0; i < 1024; i++){
             printf("%f ", enc.decode(tar_data[i]));
             
