@@ -181,7 +181,7 @@ bool RevealB(T* org, uint32_t lens){
 template<class T>
 bool ShareC(const T* org, T* target, uint32_t lens, T p){
     random_T<T>(target, lens);
-    for(int i = 0; i < target.lens; i++){
+    for(int i = 0; i < lens; i++){
         target[i] %= p;
     }
     if(Config::myconfig->check("player0")){
@@ -194,12 +194,15 @@ bool ShareC(const T* org, T* target, uint32_t lens, T p){
     return true;
 }
 template<class T>
-bool RevealC(T* target, AShare<T>& org, T p, std::string recvp, std::string sendp){
-    if(Config::myconfig->check(recvp)){
-        P2Pchannel::mychnl->recv_data_from(sendp, target, org.lens*sizeof(T));
-        add_T_mod(target, target, org.r_2, org.lens, p);
-    }else if(Config::myconfig->check(sendp)){
-        P2Pchannel::mychnl->send_data_to(recvp, org.r_2, org.lens*sizeof(T));
+bool RevealC(T* org, uint32_t lens, T p){
+    if(Config::myconfig->check("player2") || Config::myconfig->check("player1")){
+        P2Pchannel::mychnl->send_data_to("player0", org, lens*sizeof(T));
+        
+    }else if(Config::myconfig->check("player0")){
+        T temp[lens];
+        P2Pchannel::mychnl->recv_data_from("player1", temp, lens*sizeof(T));
+        P2Pchannel::mychnl->recv_data_from("player2", org, lens*sizeof(T));
+        add_T_mod(org, org, temp, lens, p);
     }
     return true;
 }
@@ -328,37 +331,144 @@ struct Plist{
     uint8_t rb[lens];
 };
 template<class T>
-void chop(T org, uint32_t* tar){
+void chop(T org, uint8_t* tar){
     for(int i = 0; i < sizeof(T)*8; i++){
-        tar[i] = (org >> i) & 1;
+        tar[sizeof(T)*8 - 1 -i] = (org >> i) & 1;
     }
 }
 template<class T>
 class Sign:public Protocol{
     public:
     Sign(){}
-    void set_up(const AShare<T> x, AShare<T>& output){
-        rls = (Plist<8*sizeof(T)>*)malloc(sizeof(Plist<8*sizeof(T)>)*output.lens);
+    ~Sign(){
+        if(rls != nullptr){
+            free(rls);
+            rls = nullptr;
+        }
+        if(r_z_p != nullptr){
+            free(r_z_p);
+            r_z_p = nullptr;
+        }
+        if(delta != nullptr){
+            free(delta);
+            delta = nullptr;
+        }
+        if(gammas != nullptr){
+            free(gammas);
+            gammas = nullptr;
+        }
+    }
+    void set_up(const AShare<T> x, AShare<T>& output, bool need_gen){
+        rls = (Plist<8*sizeof(T)+1>*)malloc(sizeof(Plist<8*sizeof(T)+1>)*output.lens);
         r_z_p = (T*) malloc(output.lens * sizeof(T));
+        
         //chops r_x to r_1,...,r_l
         if(Config::myconfig->check("player0")){
             for(int i = 0; i < output.lens; i++){
-                uint8_t temp[8*sizeof(T)];
-                chop<T>(x.r[i], rls[i]);
-                ShareC<uint8_t>(rls[i], temp, 8*sizeof(T), 67);
+                uint8_t temp[8*sizeof(T)+1];
+                chop<T>(x.r[i], rls[i].rb);
+                rls[i].rb[8*sizeof(T)] = 0;
+                ShareC<uint8_t>(rls[i].rb, temp, 8*sizeof(T)+1, 67);
+                
             }
+            if(need_gen){
+                random_T<T>(output.r_1, output.lens);
+                random_T<T>(output.r_2, output.lens);
+                add_T<T>(output.r, output.r_1, output.r_2, output.lens);
+            }
+            T temp_r[output.lens];
+            random_T<T>(temp_r, output.lens);
+            random_T<T>(r_z_p, output.lens);
+            add_T<T>(r_z_p, r_z_p, temp_r, output.lens);
         }else{
+            delta = (uint8_t*)malloc(output.lens*sizeof(uint8_t));
+            gammas = (T*) malloc(output.lens * sizeof(T));
+            
+            
             for(int i = 0; i < output.lens; i++){
-                ShareC<uint8_t>(nullptr, rls[i], 8*sizeof(T), 67);
+                ShareC<uint8_t>(nullptr, rls[i].rb, 8*sizeof(T)+1, 67);
             }
+            if(need_gen){
+                random_T<T>(output.r_2, output.lens);
+            }
+            random_T<T>(r_z_p, output.lens);
+            //pick delta
+            random_T<uint8_t>(delta, output.lens);
+            // calculate delta + r_z_p - 2 delta r_z_p + r_z
+            for(int i = 0; i < output.lens; i++){
+                delta[i] %= 2;
+                gammas[i] = r_z_p[i] - 2*r_z_p[i]*delta[i] + output.r_2[i];
+                if(Config::myconfig->check("player1"))
+                    gammas[i]+=delta[i];
+            }
+            RevealB<T>(gammas, output.lens);
         }
         
     }
-    void online();
+    void online(const AShare<T> x, AShare<T>& output){
+        if(!Config::myconfig->check("player0")){
+            Plist<8*sizeof(T)+1> m_sigmas[output.lens],m_j[output.lens],w_j[output.lens],w_j_p[output.lens],u_j[output.lens],v_j[output.lens];
+            uint32_t shiftsize = sizeof(T)*8 - 1;
+            for(int i = 0; i < output.lens; i++){
+                //pick w_j, w'_j
+                random_T<uint8_t>(w_j[i].rb, 8*sizeof(T)+1);
+                random_T<uint8_t>(w_j_p[i].rb, 8*sizeof(T)+1);
+                chop<T>((1<<shiftsize) - x.r_1[i] - 1, m_sigmas[i].rb);
+                m_sigmas[i].rb[8*sizeof(T)] = 1;
+                //m_j = m_sigma + rls - 2*m_sigma*rls
+                uint8_t sum_of_m = 0;
+                for(int j = 0; j < sizeof(T)*8+1; j++){
+                    uint8_t temp;//mj'
+                    m_j[i].rb[j] = (rls[i].rb[j] + 67 - 2*m_sigmas[i].rb[j] *rls[i].rb[j])%67;
+                    if(Config::myconfig->check("player1"))
+                        m_j[i].rb[j] = (m_j[i].rb[j] + m_sigmas[i].rb[j]) %67;
+                    //sum_of m_j - 2m_j + 1 
+                    sum_of_m += m_j[i].rb[j];
+                    temp = (sum_of_m + 67 - 2*m_j[i].rb[j]) % 67;
+                    if(Config::myconfig->check("player1"))
+                        temp += 1;
+                    w_j[i].rb[j] = (w_j[i].rb[j] + 1) % 67;
+                    w_j_p[i].rb[j] = (w_j[i].rb[j] + 1) % 67;
+                    if(Config::myconfig->check("player1")){
+                        u_j[i].rb[j] = (((uint32_t)temp)*w_j[i].rb[j]) % 67;
+                        v_j[i].rb[j] = (((((uint32_t)temp)*w_j[i].rb[j]) + 1)*w_j_p[i].rb[j]) % 67;
+                    }else{
+                        u_j[i].rb[j] = (((uint32_t)temp)*w_j[i].rb[j] + (delta[i]^m_sigmas[i].rb[j])) % 67;
+                        v_j[i].rb[j] = (((uint32_t)temp)*w_j[i].rb[j]*w_j_p[i].rb[j]) % 67;
+                    }
+                }
+                //reveal to P_0
+                RevealC<uint8_t>(u_j[i].rb, 8*sizeof(T)+1, 67);
+                RevealC<uint8_t>(v_j[i].rb, 8*sizeof(T)+1, 67);
+
+            }
+            
+            
+        }else{
+            Plist<8*sizeof(T)+1>u_j[output.lens],v_j[output.lens];
+            for(int i = 0; i < output.lens; i++){
+                RevealC<uint8_t>(u_j[i].rb, 8*sizeof(T)+1, 67);
+                RevealC<uint8_t>(v_j[i].rb, 8*sizeof(T)+1, 67);
+                printf("u:");
+                for(int j = 0; j < 8*sizeof(T)+1; j++){
+                    printf("%03u ",(uint32_t)u_j[i].rb[j]);
+                }
+                printf("\n");
+                printf("v:");
+                for(int j = 0; j < 8*sizeof(T)+1; j++){
+                    printf("%03u ",(uint32_t)v_j[i].rb[j]);
+                }
+                printf("\n");
+            }
+            
+        }
+    }
     void verify();
     private:
-    Plist<8*sizeof(T)>* rls;
-    T* r_z_p; 
+    Plist<8*sizeof(T)+1>* rls = nullptr;
+    T* r_z_p = nullptr; 
+    uint8_t* delta = nullptr;
+    T* gammas;
 };
 class Relu:public Protocol{
     public:

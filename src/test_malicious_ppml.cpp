@@ -19,12 +19,13 @@ int main(int argc, char** argv){
     FloatEncode<uint64_t, 16> enc;
     Mult<uint64_t> mult;
     Trunc<uint64_t,16> trunc;
+    Sign<uint64_t> sign;
     for(int i = 0; i < 1024; i++){
         flip *= -1;
         origin[i] = 1.22 * flip * i;
         data[i] = enc.encode(origin[i]);
-        if(Config::myconfig->check("player0"))
-        printf("%" PRIu64 " ", data[i]);
+        // if(Config::myconfig->check("player0"))
+        // printf("%" PRIu64 " ", data[i]);
     }
     AShare<uint64_t> temp1, temp_y, temp_z,temp_z2; 
     init_ashare<uint64_t>(temp1, 1024);
@@ -39,21 +40,24 @@ int main(int argc, char** argv){
     ShareA<uint64_t>(data, temp_y);
     mult.set_up(temp1, temp_y, temp_z, true);
     mult.online(temp1, temp_y, temp_z);
-    trunc.set_up(temp_z, temp_z2);
-    trunc.online(temp_z, temp_z2);
-    RevealA<uint64_t>(tar_data, temp_z2);
-    printf("\n ---------result--------- \n");
-    if(Config::myconfig->check("player0")){
-        // for(int i = 0; i < 1024; i++){
-        //     printf("%" PRIu64 " ", tar_data[i]);
+    // trunc.set_up(temp_z, temp_z2);
+    // trunc.online(temp_z, temp_z2);
+    sign.set_up(temp1, temp_z2, true);
+    sign.online(temp1, temp_z2);
+
+    // RevealA<uint64_t>(tar_data, temp_z2);
+    // printf("\n ---------result--------- \n");
+    // if(Config::myconfig->check("player0")){
+    //     // for(int i = 0; i < 1024; i++){
+    //     //     printf("%" PRIu64 " ", tar_data[i]);
             
-        // }
-        printf("\n ---------result--------- \n");
-        for(int i = 0; i < 1024; i++){
-            printf("%f ", enc.decode(tar_data[i]));
+    //     // }
+    //     printf("\n ---------result--------- \n");
+    //     for(int i = 0; i < 1024; i++){
+    //         printf("%f ", enc.decode(tar_data[i]));
             
-        }
-    }
+    //     }
+    // }
 
     release_ashare<uint64_t>(temp1);
     release_ashare<uint32_t>(temp2);
