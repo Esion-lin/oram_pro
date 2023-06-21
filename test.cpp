@@ -85,3 +85,4 @@ omp_set_num_threads(3);
 //     secp256k1_pedersen_commit(ctx, &c2, blind, value2, secp256k1_generator_h);
 //     secp256k1_scalar_add(&c3, &c1, &c2);
 // }
+
