@@ -107,12 +107,12 @@ struct AShareRing{
     ZZX r_2[LENS];
     ZZX r[LENS];
 };
-template<class T>
+template<class T, uint32_t LENS>
 struct AShare{
-    uint32_t lens;
-    T* r_1=nullptr; // m_x
-    T* r_2=nullptr;
-    T* r=nullptr;
+    uint32_t lens =1;
+    T r_1[LENS]; // m_x
+    T r_2[LENS];
+    T r[LENS];
     // ~AShare(){
     //     if(r_1!=nullptr){
     //         free(r_1);
@@ -127,12 +127,9 @@ struct AShare{
     //         r = nullptr;
     //     }
     // }
-    inline AShare<T> operator+(AShare<T> a) const {
-        AShare<T> res;
+    inline AShare<T, LENS> operator+(AShare<T, LENS> a) const {
+        AShare<T, LENS> res;
         res.lens = lens;
-        res.r_1 = (T *)malloc(sizeof(T)*lens);
-        res.r_2 = (T *)malloc(sizeof(T)*lens); 
-        res.r = (T *)malloc(sizeof(T)*lens); 
         for(int i = 0; i < lens; i ++){
             res.r[i] = a.r[i] + r[i];
             res.r_1[i] = a.r_1[i] + r_1[i];
@@ -140,20 +137,17 @@ struct AShare{
         }
         return res;
     }
-    inline void operator+=(AShare<T> a) {
-        AShare<T> res; 
+    inline void operator+=(AShare<T, LENS> a) {
+        AShare<T, LENS> res; 
         for(int i = 0; i < lens; i ++){
             res.r[i] += a.r[i];
             res.r_1[i] += a.r_1[i];
             res.r_2[i] += a.r_2[i];
         }
     }
-    inline AShare<T> operator-(AShare<T> a) const {
-        AShare<T> res;
+    inline AShare<T, LENS> operator-(AShare<T, LENS> a) const {
+        AShare<T, LENS> res;
         res.lens = lens;
-        res.r_1 = (T *)malloc(sizeof(T)*lens);
-        res.r_2 = (T *)malloc(sizeof(T)*lens); 
-        res.r = (T *)malloc(sizeof(T)*lens); 
         for(int i = 0; i < lens; i ++){
             res.r[i] = a.r[i] - r[i];
             res.r_1[i] = a.r_1[i] - r_1[i];
@@ -161,20 +155,17 @@ struct AShare{
         }
         return res;
     }
-    inline void operator-=(AShare<T> a) {
-        AShare<T> res; 
+    inline void operator-=(AShare<T, LENS> a) {
+        AShare<T, LENS> res; 
         for(int i = 0; i < lens; i ++){
             res.r[i] -= a.r[i];
             res.r_1[i] -= a.r_1[i];
             res.r_2[i] -= a.r_2[i];
         }
     }
-    inline AShare<T> operator*(T a) const {
-        AShare<T> res;
+    inline AShare<T, LENS> operator*(T a) const {
+        AShare<T, LENS> res;
         res.lens = lens;
-        res.r_1 = (T *)malloc(sizeof(T)*lens);
-        res.r_2 = (T *)malloc(sizeof(T)*lens); 
-        res.r = (T *)malloc(sizeof(T)*lens); 
         for(int i = 0; i < lens; i ++){
             res.r[i] = r[i]*a;
             res.r_1[i] = r_1[i]*a;
@@ -182,8 +173,8 @@ struct AShare{
         }
         return res;
     }
-    inline void operator*=(AShare<T> a) {
-        AShare<T> res; 
+    inline void operator*=(AShare<T, LENS> a) {
+        AShare<T, LENS> res; 
         for(int i = 0; i < lens; i ++){
             res.r[i] *= a.r[i];
             res.r_1[i] *= a.r_1[i];
@@ -191,19 +182,19 @@ struct AShare{
         }
     }
 };
-template<class T>
-void init_ashare(AShare<T> &ashare, uint32_t lens){
-    ashare.lens = lens;
-    ashare.r_1 = (T *)malloc(sizeof(T)*lens);
-    ashare.r_2 = (T *)malloc(sizeof(T)*lens); 
-    ashare.r = (T *)malloc(sizeof(T)*lens); 
-}
-template<class T>
-void release_ashare(AShare<T> &ashare){
-    free(ashare.r_1);
-    free(ashare.r_2);
-    free(ashare.r);
-}
+// template<class T>
+// void init_ashare(AShare<T> &ashare, uint32_t lens){
+//     ashare.lens = lens;
+//     ashare.r_1 = (T *)malloc(sizeof(T)*lens);
+//     ashare.r_2 = (T *)malloc(sizeof(T)*lens); 
+//     ashare.r = (T *)malloc(sizeof(T)*lens); 
+// }
+// template<class T>
+// void release_ashare(AShare<T> &ashare){
+//     free(ashare.r_1);
+//     free(ashare.r_2);
+//     free(ashare.r);
+// }
 class Protocol{
     public:
     Protocol(){}
@@ -218,8 +209,8 @@ class Protocol{
     // virtual void dump();
 };
 //<x>
-template<class T>
-bool ShareA(const T* org, AShare<T> share_value){
+template<class T, uint32_t LENS>
+bool ShareA(const T* org, AShare<T, LENS> share_value){
     random_T<T>(share_value.r_2, share_value.lens);
     T temp[share_value.lens];
     if(Config::myconfig->check("player0")){
@@ -234,8 +225,8 @@ bool ShareA(const T* org, AShare<T> share_value){
     }
     return true;
 }
-template<class T>
-bool RevealA(T* target, const AShare<T> share_value){
+template<class T, uint32_t LENS>
+bool RevealA(T* target, const AShare<T, LENS> share_value){
     if(Config::myconfig->check("player0")){
         P2Pchannel::mychnl->recv_data_from("player1", target, share_value.lens*sizeof(T));
         sub_T<T>(target, target, share_value.r, share_value.lens);
@@ -279,8 +270,9 @@ bool RobustRevealA(T* org, T* target, uint32_t lens){
     return true;
 }
 //[x]
-template<class T>
+template<class T, uint32_t dd=1>
 bool ShareB(const T* org, T* target, uint32_t lens){
+    if(dd == 1){
     random_T<T>(target, lens);
     if(Config::myconfig->check("player0")){
         T temp[lens];
@@ -288,6 +280,17 @@ bool ShareB(const T* org, T* target, uint32_t lens){
         P2Pchannel::mychnl->send_data_to("player1", temp, lens*sizeof(T));;
     }else if(Config::myconfig->check("player1")){
         P2Pchannel::mychnl->recv_data_from("player0", target, lens*sizeof(T));
+    }
+    }else{
+        T temps[lens * dd];
+        random_T<T>(temps, lens * dd);
+        if(Config::myconfig->check("player0")){
+            T temp[lens * dd];
+            sub_T<T>(temp, temps, temps, lens * dd);
+            P2Pchannel::mychnl->send_data_to("player1", temp, dd*lens*sizeof(T));;
+        }else if(Config::myconfig->check("player1")){
+            P2Pchannel::mychnl->recv_data_from("player0", temps, dd*lens*sizeof(T));
+        }
     }
     return true;
 }
@@ -326,17 +329,27 @@ bool RevealB(T* target, const T* org, uint32_t lens, std::string recvp, std::str
     }
     return true;
 }
-template<class T>
+template<class T, uint32_t dd = 1>
 bool RevealB(T* org, uint32_t lens){
-    T temp[lens];
-    if(Config::myconfig->check("player1")){
-        P2Pchannel::mychnl->send_data_to("player2", org, lens*sizeof(T));
-        P2Pchannel::mychnl->recv_data_from("player2", temp, lens*sizeof(T));
-    }else if(Config::myconfig->check("player2")){
-        P2Pchannel::mychnl->send_data_to("player1", org, lens*sizeof(T));
-        P2Pchannel::mychnl->recv_data_from("player1", temp, lens*sizeof(T));
+    T temp[lens*dd];
+    if(dd != 1){
+        if(Config::myconfig->check("player1")){
+            P2Pchannel::mychnl->send_data_to("player2", temp, dd*lens*sizeof(T));
+            P2Pchannel::mychnl->recv_data_from("player2", temp, dd*lens*sizeof(T));
+        }else if(Config::myconfig->check("player2")){
+            P2Pchannel::mychnl->send_data_to("player1", temp, dd*lens*sizeof(T));
+            P2Pchannel::mychnl->recv_data_from("player1", temp, dd*lens*sizeof(T));
+        }
+    }else{
+        if(Config::myconfig->check("player1")){
+            P2Pchannel::mychnl->send_data_to("player2", org, lens*sizeof(T));
+            P2Pchannel::mychnl->recv_data_from("player2", temp, lens*sizeof(T));
+        }else if(Config::myconfig->check("player2")){
+            P2Pchannel::mychnl->send_data_to("player1", org, lens*sizeof(T));
+            P2Pchannel::mychnl->recv_data_from("player1", temp, lens*sizeof(T));
+        }
+        add_T<T>(org, org, temp, lens);
     }
-    add_T<T>(org, org, temp, lens);
     return true;
 }
 bool RevealBRing(ZZX* org, uint32_t lens){
@@ -405,12 +418,12 @@ bool RevealC(T* org, uint32_t lens, T p){
     return true;
 }
 
-template<class T>
+template<class T, uint32_t LENS>
 class Mult:public Protocol{
     public:
     Mult(){}
     //need_gen: need generate r_z
-    void set_up(const AShare<T> x, const AShare<T> y, AShare<T>& output, bool need_gen){
+    void set_up(const AShare<T, LENS> x, const AShare<T, LENS> y, AShare<T, LENS>& output, bool need_gen){
         //P0
         T gammas[output.lens];
         if(Config::myconfig->check("player0")){
@@ -436,7 +449,7 @@ class Mult:public Protocol{
             
         }
     }
-    void online(const AShare<T> x,const AShare<T> y, AShare<T>& output){
+    void online(const AShare<T, LENS> x,const AShare<T, LENS> y, AShare<T, LENS>& output){
         if(!Config::myconfig->check("player0")){
             T temp[output.lens];
             if(Config::myconfig->check("player1")){
@@ -453,12 +466,12 @@ class Mult:public Protocol{
     void verify(){}
     private:
 };
-template<class T>
+template<class T, uint32_t LENS, uint32_t dd = 1>
 class Dot:public Protocol{
     public:
     Dot(){}
     //need_gen: need generate r_z
-    void set_up(const AShare<T> *x, const AShare<T> *y, AShare<T>& output, uint32_t lens, bool need_gen){
+    void set_up(const AShare<T, LENS> *x, const AShare<T, LENS> *y, AShare<T, LENS>& output, uint32_t lens, bool need_gen){
         //P0
         T gammas[output.lens];
         if(Config::myconfig->check("player0")){
@@ -475,32 +488,32 @@ class Dot:public Protocol{
                 gammas[i] += output.r[i];
             }
             T temp[output.lens];
-            ShareB<T>(gammas, temp, output.lens );
-            
+            ShareB<T, dd>(gammas, temp, output.lens);
+            printf("---------lens:%d\n", output.lens);
             
         }else{
             if(need_gen){
                 
                 random_T<T>(output.r_2, output.lens);
             }
-            ShareB<T>(nullptr, output.r_1, output.lens);
+            ShareB<T, dd>(nullptr, output.r_1, output.lens);
             
         }
     }
-    void online(const AShare<T> *x, const AShare<T> *y, AShare<T>& output, uint32_t lens){
+    void online(const AShare<T, LENS> *x, const AShare<T, LENS> *y, AShare<T, LENS>& output, uint32_t lens){
         if(!Config::myconfig->check("player0")){
             T temp[output.lens];
             for(int j = 0; j < lens; j++){
-            if(Config::myconfig->check("player1")){
-                mul_T<T>(temp, x[j].r_1, y[j].r_1, output.lens);
-                add_T<T>(output.r_1, output.r_1, temp, output.lens);
+                if(Config::myconfig->check("player1")){
+                    mul_T<T>(temp, x[j].r_1, y[j].r_1, output.lens);
+                    add_T<T>(output.r_1, output.r_1, temp, output.lens);
+                }
+                mul_T<T>(temp, x[j].r_1, y[j].r_2, output.lens);
+                sub_T<T>(output.r_1, output.r_1, temp, output.lens);
+                mul_T<T>(temp, x[j].r_2, y[j].r_1, output.lens);
+                sub_T<T>(output.r_1, output.r_1, temp, output.lens);
             }
-            mul_T<T>(temp, x[j].r_1, y[j].r_2, output.lens);
-            sub_T<T>(output.r_1, output.r_1, temp, output.lens);
-            mul_T<T>(temp, x[j].r_2, y[j].r_1, output.lens);
-            sub_T<T>(output.r_1, output.r_1, temp, output.lens);
-            }
-            RevealB<T>(output.r_1, output.lens);
+            RevealB<T, dd>(output.r_1, output.lens);
         }
     }
     void verify(){}
@@ -570,11 +583,11 @@ class DotForRing:public Protocol{
     ZZX P;
     
 };
-template<class T, uint32_t prec>
+template<class T, uint32_t prec, uint32_t LENS>
 class Trunc:public Protocol{
     public:
     Trunc(){}
-    void set_up(const AShare<T> x, AShare<T>& output){
+    void set_up(const AShare<T, LENS> x, AShare<T, LENS>& output){
         if(Config::myconfig->check("player0")){
             for(int i = 0; i < output.lens; i++)
                 output.r[i] = (int64_t)x.r[i] >> prec;
@@ -584,7 +597,7 @@ class Trunc:public Protocol{
             ShareB<uint64_t>(nullptr, output.r_2, output.lens);
         }
     }
-    void online(const AShare<T> x, AShare<T>& output){
+    void online(const AShare<T, LENS> x, AShare<T, LENS>& output){
         if(!Config::myconfig->check("player0")){
             for(int i = 0; i < output.lens; i++){
                 output.r_1[i] = (int64_t)x.r_1[i] >> prec;
@@ -610,7 +623,7 @@ bool check_list(uint8_t *u, uint8_t *v, uint32_t lens){
     }
     return false;
 }
-template<class T>
+template<class T, uint32_t LENS>
 class Sign:public Protocol{
     public:
     Sign(){}
@@ -632,7 +645,7 @@ class Sign:public Protocol{
             gammas = nullptr;
         }
     }
-    void set_up(const AShare<T> x, AShare<T>& output, bool need_gen){
+    void set_up(const AShare<T, LENS> x, AShare<T, LENS>& output, bool need_gen){
         rls = (Plist<8*sizeof(T)+1>*)malloc(sizeof(Plist<8*sizeof(T)+1>)*output.lens);
         r_z_p = (T*) malloc(output.lens * sizeof(T));
         
@@ -684,7 +697,7 @@ class Sign:public Protocol{
         }
         
     }
-    void online(const AShare<T> x, AShare<T>& output){
+    void online(const AShare<T, LENS> x, AShare<T, LENS>& output){
         if(!Config::myconfig->check("player0")){
             Plist<8*sizeof(T)+1> m_sigmas[output.lens],m_j[output.lens],w_j[output.lens],w_j_p[output.lens],u_j[output.lens],v_j[output.lens],temp[output.lens];
             uint32_t shiftsize = sizeof(T)*8 - 1;
@@ -788,3 +801,4 @@ class Conv:public Protocol{
     void online();
     void verify();
 };
+
