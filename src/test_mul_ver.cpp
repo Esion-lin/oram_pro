@@ -20,6 +20,7 @@ int main(int argc, char** argv){
     P2Pchannel::mychnl = new P2Pchannel(Config::myconfig->Pmap, argv[1]);
     Config::myconfig->set_player(argv[1]);
     uint32_t lens = atoi(argv[2]);
+    uint32_t tlens = lens;
     uint32_t R = atoi(argv[3]);
     uint64_t data[lens];
 
@@ -51,7 +52,7 @@ int main(int argc, char** argv){
     dotv.set_up(x_z,y_z,z_z);
     dotv.verify(x_z,y_z,z_z);
     Timer::stop("total");
-    Timer::test_print();
+    Timer::test_print(R, tlens);
     delete[] x_z;
     delete[] y_z;
    

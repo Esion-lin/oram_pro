@@ -48,15 +48,28 @@ class Timer{
         }
     }
     static void test_print(std::string path = "data.csv"){
-        //ofstream outFile;  
-        //outFile.open(path, ios::app);
+        // std::ofstream outFile;  
+        // outFile.open(path, std::ios::app);
         for(auto ele:times){
             
             printf("%s: %lf ms\n", ele.first.c_str(), ele.second * 1000);
             //if(ele.first == "mpc_write_total" || ele.first == "mpc_write_online"){outFile << ele.second * 1000 << ',';}
             // if(ele.first == "init") outFile << ele.second << ',';
-
-            // else outFile << ele.second * 1000 << ',';
+            
+            // outFile << ele.second * 1000 << '\n';
+        }
+        //outFile<<std::endl;
+    }
+    static void test_print(uint32_t R, uint32_t lens, std::string path = "data.csv"){
+        std::ofstream outFile;  
+        outFile.open(path, std::ios::app);
+        for(auto ele:times){
+            
+            printf("%s: %lf ms\n", ele.first.c_str(), ele.second * 1000);
+            //if(ele.first == "mpc_write_total" || ele.first == "mpc_write_online"){outFile << ele.second * 1000 << ',';}
+            // if(ele.first == "init") outFile << ele.second << ',';
+            if(Config::myconfig->check("player0"))
+            outFile <<R<<","<<lens<<","<< ele.second * 1000 << "\n";
         }
         //outFile<<std::endl;
     }
