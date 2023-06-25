@@ -6,7 +6,42 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 #include <inttypes.h>
+#include <NTL/ZZX.h>
+using namespace NTL;
 #define THREADS 2
+
+template<class T>
+void random_T(T* target, uint32_t lens){
+    AES_KEY aes_key;
+    uint8_t seeds[16] = {0};
+    memset(seeds, 0, 16);
+    AES_set_encrypt_key(seeds, 128, &(aes_key));
+    for(int i = 0; i < lens * sizeof(T) / 16; i ++)
+        AES_encrypt(seeds, ((uint8_t*)target) + 16*i, &aes_key);
+    for(int i = (lens * sizeof(T) / 16 )*16; i < lens; i++){
+        target[i] = 1;
+    }
+
+}
+template<uint32_t D>
+ZZX randomzzx(){
+    ZZX res;
+    long a = 17;
+    for(int i = 0; i <D; i++){
+        a *= a;
+        SetCoeff(res, i, a*2);
+    }
+    return res;
+}
+template<uint32_t D>
+void randomzzx(ZZX * target, uint32_t lens){
+    long a = 17;
+    for(int j = 0; j <lens; j++)
+    for(int i = 0; i <D; i++){
+        a *= a;
+        SetCoeff(target[j], i, a*2);
+    }
+}
 template<class T>
 void papply(T* z, const T* x, const T* y, uint32_t lens, std::function<T(T, T)> op){
 //     omp_set_num_threads(THREADS);
@@ -38,19 +73,7 @@ class FloatEncode{
     }
 
 };
-template<class T>
-void random_T(T* target, uint32_t lens){
-    AES_KEY aes_key;
-    uint8_t seeds[16] = {0};
-    memset(seeds, 0, 16);
-    AES_set_encrypt_key(seeds, 128, &(aes_key));
-    for(int i = 0; i < lens * sizeof(T) / 16; i ++)
-        AES_encrypt(seeds, ((uint8_t*)target) + 16*i, &aes_key);
-    for(int i = (lens * sizeof(T) / 16 )*16; i < lens * sizeof(T); i++){
-        target[i] = 1;
-    }
 
-}
 template<class T>
 void sub_T(T* z, const T* x, const T* y, uint32_t lens){
     papply<T>(z, x, y, lens, [](T a, T b) -> T{return a - b;});
@@ -71,11 +94,19 @@ template<class T>
 void mul_T(T* z, const T* x, const T* y, uint32_t lens){
     papply<T>(z, x, y, lens, [](T a, T b) -> T{return a * b;});
 }
+void mul_TRing(ZZX* z, const ZZX* x, const ZZX* y, const ZZX P, uint32_t lens){
+    papply<ZZX>(z, x, y, lens, [P](ZZX a, ZZX b) -> ZZX{return MulMod(a, b, P);});
+}
 template<class T>
 void mul_T_mod(T* z, const T* x, const T* y, uint32_t lens, T mod){
     papply<T>(z, x, y, lens, [mod](T a, T b) -> T{return (a * b) % mod;});
 }
-
+template<uint32_t LENS>
+struct AShareRing{
+    ZZX r_1[LENS];
+    ZZX r_2[LENS];
+    ZZX r[LENS];
+};
 template<class T>
 struct AShare{
     uint32_t lens;
@@ -215,6 +246,34 @@ bool RevealA(T* target, const AShare<T> share_value){
     }
     return true;
 }
+template<uint32_t LENS>
+bool RevealARing(ZZX* target,  AShareRing<LENS> share_value){
+    uint64_t list[LENS * 32];
+    if(Config::myconfig->check("player0")){
+        uint32_t itr = 0;
+        
+        P2Pchannel::mychnl->recv_data_from("player1", list, LENS*32*sizeof(uint64_t));
+        for(int i = 0; i < LENS; i++){
+            for(int j = 0; j < 32; j++)
+                SetCoeff(target[i], j, list[itr++]);
+        }
+        // std::cout<<"-------"<<target[0]<<" "<<share_value.r[0]<<std::endl;
+        sub_T<ZZX>(target, target, share_value.r, LENS);
+        // add_T<T>(target, temp, share_value.r_2, share_value.lens);
+
+    }else if(Config::myconfig->check("player1")){
+        uint32_t itr = 0;
+        
+        for(int i = 0; i < LENS; i++){
+            share_value.r_1[i].SetMaxLength(32);
+            for(int j = 0; j < 32; j++){
+                conv(list[itr++], share_value.r_1[i][j]);
+            }
+        }
+        P2Pchannel::mychnl->send_data_to("player0", list, LENS*32*sizeof(uint64_t));
+    }
+    return true;
+}
 template<class T>
 bool RobustRevealA(T* org, T* target, uint32_t lens){
     return true;
@@ -229,6 +288,30 @@ bool ShareB(const T* org, T* target, uint32_t lens){
         P2Pchannel::mychnl->send_data_to("player1", temp, lens*sizeof(T));;
     }else if(Config::myconfig->check("player1")){
         P2Pchannel::mychnl->recv_data_from("player0", target, lens*sizeof(T));
+    }
+    return true;
+}
+bool ShareBRing(const ZZX* org, ZZX* target, uint32_t lens){
+    randomzzx<32>(target, lens);
+    uint64_t list[lens * 32];
+    if(Config::myconfig->check("player0")){
+        ZZX temp[lens];
+        
+        sub_T<ZZX>(temp, org, target, lens);
+        
+        uint32_t itr = 0;
+        for(int i = 0; i < lens; i++){
+            for(int j = 0; j < 32; j++)
+                conv(list[itr++], temp[i][j]);
+        }
+        P2Pchannel::mychnl->send_data_to("player1", list, lens*sizeof(uint64_t)*32);;
+    }else if(Config::myconfig->check("player1")){
+        P2Pchannel::mychnl->recv_data_from("player0", list, lens*sizeof(uint64_t)*32);
+        uint32_t itr = 0;
+        for(int i = 0; i < lens; i++){
+            for(int j = 0; j < 32; j++)
+                SetCoeff(target[i], j, list[itr++]);
+        }
     }
     return true;
 }
@@ -254,6 +337,42 @@ bool RevealB(T* org, uint32_t lens){
         P2Pchannel::mychnl->recv_data_from("player1", temp, lens*sizeof(T));
     }
     add_T<T>(org, org, temp, lens);
+    return true;
+}
+bool RevealBRing(ZZX* org, uint32_t lens){
+    ZZX* temp = new ZZX[lens];
+    uint64_t list[lens * 32];
+    if(Config::myconfig->check("player1")){
+        uint32_t itr = 0;
+        for(int i = 0; i < lens; i++){
+            for(int j = 0; j < 32; j++)
+                conv(list[itr++], org[i][j]);
+        }
+        P2Pchannel::mychnl->send_data_to("player2", list, lens * 32*sizeof(uint64_t));
+        P2Pchannel::mychnl->recv_data_from("player2", list, lens * 32*sizeof(uint64_t));
+        itr = 0;
+        for(int i = 0; i < lens; i++){
+            temp[i].SetMaxLength(32);
+            for(int j = 0; j < 32; j++)
+                SetCoeff(temp[i], j, list[itr++]);
+        }
+    }else if(Config::myconfig->check("player2")){
+        uint32_t itr = 0;
+        for(int i = 0; i < lens; i++){
+            for(int j = 0; j < 32; j++)
+                conv(list[itr++], org[i][j]);
+        }
+        P2Pchannel::mychnl->send_data_to("player1", list, lens * 32*sizeof(uint64_t));
+        P2Pchannel::mychnl->recv_data_from("player1", list, lens * 32*sizeof(uint64_t));
+        itr = 0;
+        for(int i = 0; i < lens; i++){
+            temp[i].SetMaxLength(32);
+            for(int j = 0; j < 32; j++)
+                SetCoeff(temp[i], j, list[itr++]);
+        }
+    }
+    add_T<ZZX>(org, org, temp, lens);
+    delete[] temp;
     return true;
 }
 //[[x]]
@@ -356,7 +475,7 @@ class Dot:public Protocol{
                 gammas[i] += output.r[i];
             }
             T temp[output.lens];
-            ShareB<uint64_t>(gammas, temp, output.lens );
+            ShareB<T>(gammas, temp, output.lens );
             
             
         }else{
@@ -364,7 +483,7 @@ class Dot:public Protocol{
                 
                 random_T<T>(output.r_2, output.lens);
             }
-            ShareB<uint64_t>(nullptr, output.r_1, output.lens);
+            ShareB<T>(nullptr, output.r_1, output.lens);
             
         }
     }
@@ -386,6 +505,70 @@ class Dot:public Protocol{
     }
     void verify(){}
     private:
+};
+template<uint32_t LENS>
+class DotForRing:public Protocol{
+    public:
+    bool ismalicious = false;
+    DotForRing(){}
+    //need_gen: need generate r_z
+    void set_up(const AShareRing<LENS>*x, const AShareRing<LENS> *y, AShareRing<LENS>& output, uint32_t lens, bool need_gen){
+        //P0
+        
+        SetCoeff(P, 32, 1);
+        ZZX gammas[LENS];
+        if(Config::myconfig->check("player0")){
+            if(need_gen){
+                randomzzx<32>(output.r_1, LENS);
+                randomzzx<32>(output.r_2, LENS);
+
+                add_T<ZZX>(output.r, output.r_1, output.r_2, LENS);
+                
+            }
+            for(int i = 0; i < LENS; i ++){
+                gammas[i] = 0;
+                for(int j = 0; j < lens; j++)
+                    gammas[i] += MulMod(x[j].r[i], y[j].r[i], P);
+                
+                gammas[i] += output.r[i];
+                if(ismalicious){
+                    gammas[i] += 1;
+                }
+            }
+            
+            ZZX temp[LENS];
+            ShareBRing(gammas, temp, LENS );
+            
+            
+        }else{
+            if(need_gen){
+                randomzzx<32>(output.r_2, LENS);
+            }
+            ShareBRing(nullptr, output.r_1, LENS);
+            
+        }
+    }
+    void online(const AShareRing<LENS> *x, const AShareRing<LENS> *y, AShareRing<LENS>& output, uint32_t lens){
+        if(!Config::myconfig->check("player0")){
+            ZZX temp[LENS];
+            for(int j = 0; j < lens; j++){
+            if(Config::myconfig->check("player1")){
+                mul_TRing(temp, x[j].r_1, y[j].r_1,P, LENS);
+                
+                add_T<ZZX>(output.r_1, output.r_1, temp, LENS);
+            }
+            mul_TRing(temp, x[j].r_1, y[j].r_2,P, LENS);
+            sub_T<ZZX>(output.r_1, output.r_1, temp, LENS);
+            mul_TRing(temp, x[j].r_2, y[j].r_1,P, LENS);
+            sub_T<ZZX>(output.r_1, output.r_1, temp, LENS);
+            }
+            RevealBRing(output.r_1, LENS);
+        }
+    }
+    void verify(){}
+    private:
+    ZZX P;
+    
 };
 template<class T, uint32_t prec>
 class Trunc:public Protocol{

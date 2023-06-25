@@ -9,6 +9,7 @@ SET(CMAKE_EXE_LINKER_FLAGS
           "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/usr/local/lib")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/salticidae/cmake/Modules/")
+set(NTL_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 add_definitions(-DNEED_MUL -DNEED_CMOV -DTotal_bitwise -w)
 
 IF (CMAKE_BUILD_TYPE STREQUAL Debug)        
@@ -27,6 +28,21 @@ option(TEST_AUDI "test auditable protocol" OFF)
 option(TEST_PPML "test PPML protocol" ON)
 
 find_package(OpenSSL REQUIRED)
+find_path(NTL_INCLUDE_DIR
+              NAMES NTL/ZZ.h
+              HINTS ENV NTL_INC_DIR
+                    ENV NTL_DIR
+              PATH_SUFFIXES include
+              DOC "The directory containing the NTL include files"
+             )
+
+find_library(NTL_LIBRARY
+                NAMES ntl
+                HINTS ENV NTL_LIB_DIR
+                    ENV NTL_DIR
+                PATH_SUFFIXES lib
+                DOC "Path to the NTL library"
+            )
 find_path(GMP_INCLUDE_DIR NAMES gmp.h)
 find_library(GMP_LIBRARIES NAMES gmp libgmp)
 find_library(GMPXX_LIBRARIES NAMES gmpxx libgmpxx)
@@ -140,7 +156,9 @@ if(TEST_PPML)
     include_directories(protocol/malicious_ppml)
     add_library(ppml protocol/malicious_ppml/semi.cc)
     add_executable(test_ppml src/test_malicious_ppml.cpp)
-    target_link_libraries(test_ppml PUBLIC  ${OPENSSL_LIBRARIES} ppml)
+    add_executable(test_mul_ver src/test_mul_ver.cpp)
+    target_link_libraries(test_ppml PUBLIC ntl ${OPENSSL_LIBRARIES} ppml)
+    target_link_libraries(test_mul_ver PUBLIC ntl ${OPENSSL_LIBRARIES} ppml)
 endif()
 
 # 
