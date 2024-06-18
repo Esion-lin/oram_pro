@@ -44,7 +44,7 @@ Move config and instruction files to the build folder.
 There is `-h` command for more parameter settings.
 
 
-## PFE
+### PFE
 
 There are three instruction files:
 
