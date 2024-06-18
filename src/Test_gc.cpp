@@ -1,5 +1,5 @@
 #include "gc_op.h"
-INITIALIZE_EASYLOGGINGPP
+
 int main(int argc, const char** argv) {
     std::string st = argv[1];
     Config* cfg = new Config("./config.json");

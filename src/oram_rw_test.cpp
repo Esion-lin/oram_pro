@@ -115,6 +115,7 @@ int main(int argc, const char** argv) {
     Config::myconfig = new Config("./config.json");
     P2Pchannel::mychnl = new P2Pchannel(Config::myconfig->Pmap, st);
     Config::myconfig->set_player(st);
+    printf("111111\n");
     if(ele_size == 1){
         
             Convert* conv = new Convert(st, P2Pchannel::mychnl);
@@ -130,6 +131,7 @@ int main(int argc, const char** argv) {
             Ram<uint32_t>* test_ram = new Ram<uint32_t>(ram_data, ele_lens, st, P2Pchannel::mychnl);
             
             Oram *test_ram2 = new Oram(ele_lens, ram_data);
+            
             test_ram->init();
             P2Pchannel::mychnl->flush_all();
             Timer::stop("init");

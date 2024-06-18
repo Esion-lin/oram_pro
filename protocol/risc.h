@@ -5,7 +5,7 @@
 #include "convert.h"
 #include <memory>
 #define M_LEN 32
-#define ARR_LEN 4096
+#define ARR_LEN 4096 //input size
 #define MEM_LEN 8256 //4096 + 64
 #define PRO_SIZE 64 //2*ins size
 #define TAPE_LEN 32

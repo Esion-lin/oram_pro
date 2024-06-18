@@ -33,7 +33,7 @@ If `make` reports error, delete all `LOG` that reported the error.
 
 ## 2) Running the benchmarks
 
-Move config and instruction files to the build folder.
+Move config and instruction files to the build folder. For DT and ORAM, make `is_flush = false` in file `include/net.hpp`; for PFE, make `is_flush = true`.
 
 | **Simple TEST** ||
 | :--- | :---|
@@ -50,9 +50,9 @@ There are three instruction files:
 
 | **instruction** ||
 | :--- | :---|
-| quick sort | ``` quick_sort.ins```|
+| quick sort | ```quick_sort.ins```|
 | set intersection | ```set_inte.ins```|
-| binary sort | ```test.ins```|
+| binary sort | ```binary_sort.ins```|
 
 Adjust input size by changing `ARR_LEN` in file `protocol/risc.h`.
 

@@ -20,7 +20,7 @@ inline void send_mpz(mpz_class data, std::string player, P2Pchannel *p2pchnl = P
     char* datt = (char*) malloc(40);
     mpz_export(datt, &b, -1, sizeof(char), 0, 0, data.get_mpz_t());
     if (b >= 40){
-        LOG(ERROR) << "size out of array! ";
+        // LOG(ERROR) << "size out of array! ";
         free(datt);
         return ;
     }
@@ -44,7 +44,7 @@ inline void send_mpz(mpz_class data, P2Pchannel *p2pchnl = P2Pchannel::mychnl){
     char* datt = (char*) malloc(40);
     mpz_export(datt, &b, -1, sizeof(char), 0, 0, data.get_mpz_t());
     if (b >= 40){
-        LOG(ERROR) << "size out of array! ";
+        // LOG(ERROR) << "size out of array! ";
         free(datt);
         return ;
     }
@@ -57,7 +57,7 @@ inline void send_role_mpz(mpz_class data, P2Pchannel *p2pchnl = P2Pchannel::mych
     char* datt = (char*) malloc(40);
     mpz_export(datt, &b, -1, sizeof(char), 0, 0, data.get_mpz_t());
     if (b >= 40){
-        LOG(ERROR) << "size out of array! ";
+        // LOG(ERROR) << "size out of array! ";
         free(datt);
         return ;
     }

@@ -3,10 +3,11 @@ project(ram_mpc_dt)
 SET(CMAKE_BUILD_TYPE "Debug")  
 set(CMAKE_CXX_STANDARD 14)
 #SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -g2 -ggdb -g -O2")
-SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -Wall -g2 -ggdb -fsanitize=address -fno-omit-frame-pointer -g -O2")   
-SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")  
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -Wall -g2 -ggdb -fsanitize=address -fno-omit-frame-pointer -g -O2 -msse4.1 -maes")   
+SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall  -msse4.1 -maes")  
+
 SET(CMAKE_EXE_LINKER_FLAGS 
-          "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/usr/local/lib")
+          "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/usr/local/lib  -msse4.1 -maes")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/salticidae/cmake/Modules/")
 set(NTL_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -16,16 +17,16 @@ IF (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-DDEBUG) 
 ENDIF()
 
-option(ENABLE_FFS "Enable FFS" OFF)
-option(ENABLE_GC "Enable GC" OFF)
+option(ENABLE_FFS "Enable FFS" ON) #ORAM
+option(ENABLE_GC "Enable GC" ON)
 option(ENABLE_DT "Enable DT" OFF)
-option(TEST_FOREST_DT "test forest dt protocol" OFF)
-option(TEST_RISC "test risc protocol" OFF)
+option(TEST_FOREST_DT "test forest dt protocol" ON) #DT
+option(TEST_RISC "test risc protocol" ON) #PFE
 option(TEST_GCM "test GCM protocol" OFF)
 
 option(TEST_AUDI "test auditable protocol" OFF)
 
-option(TEST_PPML "test PPML protocol" ON)
+option(TEST_PPML "test PPML protocol" OFF)
 
 find_package(OpenSSL REQUIRED)
 find_path(NTL_INCLUDE_DIR
@@ -105,7 +106,7 @@ if (ENABLE_FFS)
     add_library(fss_mpc include/fss_mpc.cpp)
     target_link_libraries(fss gmp gmpxx ${OPENSSL_LIBRARIES})
     add_executable(test_fss src/Test_ram.cpp)
-    target_link_libraries(test_fss PRIVATE fss)
+    target_link_libraries(test_fss PRIVATE fss log)
 endif()
 
 if (ENABLE_GC)
