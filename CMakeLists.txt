@@ -4,10 +4,9 @@ SET(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_CXX_STANDARD 14)
 #SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -g2 -ggdb -g -O2")
 SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -Wall -g2 -ggdb -fsanitize=address -fno-omit-frame-pointer -g -O2 -msse4.1 -maes")   
-SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall  -msse4.1 -maes")  
-
+SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall -msse4.1 -maes")  
 SET(CMAKE_EXE_LINKER_FLAGS 
-          "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/usr/local/lib  -msse4.1 -maes")
+          "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,/usr/local/lib -msse4.1 -maes")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/salticidae/cmake/Modules/")
 set(NTL_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -17,16 +16,16 @@ IF (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-DDEBUG) 
 ENDIF()
 
-option(ENABLE_FFS "Enable FFS" ON) #ORAM
-option(ENABLE_GC "Enable GC" ON)
+option(ENABLE_FFS "Enable FFS" OFF) #ORAM
+option(ENABLE_GC "Enable GC" OFF)
 option(ENABLE_DT "Enable DT" OFF)
-option(TEST_FOREST_DT "test forest dt protocol" ON) #DT
-option(TEST_RISC "test risc protocol" ON) #PFE
+option(TEST_FOREST_DT "test forest dt protocol" OFF) #DT
+option(TEST_RISC "test risc protocol" OFF) #PFE
 option(TEST_GCM "test GCM protocol" OFF)
 
 option(TEST_AUDI "test auditable protocol" OFF)
 
-option(TEST_PPML "test PPML protocol" OFF)
+option(TEST_PPML "test PPML protocol" ON)
 
 find_package(OpenSSL REQUIRED)
 find_path(NTL_INCLUDE_DIR
@@ -108,7 +107,6 @@ if (ENABLE_FFS)
     add_executable(test_fss src/Test_ram.cpp)
     target_link_libraries(test_fss PRIVATE fss log)
 endif()
-
 if (ENABLE_GC)
     message("enable gc") 
     add_library(gc protocol/src/gc_op.cpp)
@@ -155,25 +153,15 @@ endif()
 if(TEST_PPML)
     message("TEST PPML")
     include_directories(protocol/malicious_ppml)
-    add_library(ppml protocol/malicious_ppml/semi.cc)
+    add_library(ppml include/basicSockets.cpp include/connect.cpp)
     #add_executable(test_ppml src/test_malicious_ppml.cpp)
-    add_executable(test_mul_ver src/test_mul_ver.cpp)
-    add_executable(test_mul_ver2 src/test_mul_ver2.cpp)
+    #add_executable(test_mul_ver src/test_mul_ver.cpp)
+    add_executable(test_sign src/test_sign.cpp)
+    add_executable(test_bicoptor src/Test_bicoptor.cpp)
+    #add_executable(test_mul_ver2 src/test_mul_ver2.cpp)
     #target_link_libraries(test_ppml PUBLIC ntl ${OPENSSL_LIBRARIES} ppml)
-    target_link_libraries(test_mul_ver PUBLIC ntl ${OPENSSL_LIBRARIES} ppml)
-    target_link_libraries(test_mul_ver2 PUBLIC ntl ${OPENSSL_LIBRARIES} ppml)
+    #target_link_libraries(test_mul_ver PUBLIC ntl ${OPENSSL_LIBRARIES} ppml)
+    #target_link_libraries(test_mul_ver2 PUBLIC ntl ${OPENSSL_LIBRARIES} ppml)
+    target_link_libraries(test_sign PUBLIC ntl ${OPENSSL_LIBRARIES} ppml)
+    target_link_libraries(test_bicoptor PUBLIC ntl ${OPENSSL_LIBRARIES} ppml)
 endif()
-
-# 
-
-
-
-# add_executable(test_thr src/Test_3_parties.cpp)
-
-# target_link_libraries(test PRIVATE risc log)
-
-
-
-# target_link_libraries(test_thr PRIVATE fss log)
-
-# target_link_libraries(test_dt_con PRIVATE fss log )
