@@ -75,17 +75,19 @@ class Sign{
                 }
             }
             free(temp);
-            T temp_r[output.size()];
+            T* temp_r= (T*)malloc(output.size()*sizeof(T));
+
             random_T<T>(temp_r, output.size());
             random_T<T>(r_z_p, output.size());
             add_T<T>(r_z_p, r_z_p, temp_r, output.size());
+            free(temp_r);
         }else{
             delta = (uint8_t*)malloc(output.size()*sizeof(uint8_t));
             gammas = (T*) malloc(output.size() * sizeof(T));
             
             
             ShareCt<uint8_t>(nullptr, (unsigned char*)rls, output.size()*(8*sizeof(T)+1), 67);
-            T rr[output.size()];
+            T* rr= (T*)malloc(output.size()*sizeof(T));
             if(need_gen){
                 random_T<T>(rr, output.size());
                 #pragma omp parallel for
@@ -105,6 +107,7 @@ class Sign{
                     gammas[i]+=delta[i];
             }
             RevealBt<T>(gammas, output.size());
+            free(rr);
         }
         printf("setup done\n");
     }
@@ -126,6 +129,7 @@ class Sign{
             uint32_t shiftsize = sizeof(T)*8 - 1;
             random_T<uint8_t>((uint8_t*)w_j, output.size()*(8*sizeof(T)+1));
             random_T<uint8_t>((uint8_t*)w_j_p, output.size()*(8*sizeof(T)+1));
+
             #pragma omp parallel for
             for(int i = 0; i < output.size(); i++){
                 //pick w_j, w'_j
@@ -184,7 +188,7 @@ class Sign{
             Timer::record("communication");
             RevealCt<uint8_t>((uint8_t*)u_j, 2*output.size()*(6*sizeof(T)+1), 67);
             // RevealC<uint8_t>((uint8_t*)v_j, output.size()*(8*sizeof(T)+1), 67);
-            T backmessage[output.size()];
+            T* backmessage=(T*)malloc(output.size()*sizeof(T));
             receiveVector<T>(backmessage, 0, output.size());
             Timer::stop("communication");
             // P2Pchannel::mychnl->recv_data_from("player0", backmessage, sizeof(T)*output.size());
@@ -194,12 +198,13 @@ class Sign{
             }
             
             free(u_j);
-            
+            free(backmessage);
+
 
         }else{
             Plist<8*sizeof(T)+1>* u_j = (Plist<8*sizeof(T)+1>*)malloc(2*output.size()*(8*sizeof(T)+1));
             // Plist<8*sizeof(T)+1>* v_j = (Plist<8*sizeof(T)+1>*)malloc(output.size()*(8*sizeof(T)+1));
-            T backmessage[output.size()];
+            T* backmessage=(T*)malloc(output.size()*sizeof(T));
             Timer::record("communication");
             RevealCt<uint8_t>((uint8_t*)u_j, 2*output.size()*(6*sizeof(T)+1), 67);
             Timer::stop("communication");
@@ -239,6 +244,7 @@ class Sign{
             // P2Pchannel::mychnl->send_data_to("player2", backmessage, sizeof(T)*output.size());
             free(u_j);
             // free(v_j);
+            free(backmessage);
         }
     }
     void verify();
