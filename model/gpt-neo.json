@@ -1,0 +1,404 @@
+{
+    "name": "GPT-2",
+    "dataset": "CIFAR10",
+    "batch_size": 128,
+    "input_size": 2048,
+    "num_classes": 10,
+    "model": [
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "fc",
+            "input_dim": 2048,
+            "output_dim": 6144
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "attention",
+            "input_dim": 6144
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        },
+        {
+            "layer": "FFN",
+            "input_dim": 2048
+        },
+        {
+            "layer": "ln",
+            "input_dim": 2048
+        }
+        
+    ] 
+}
+

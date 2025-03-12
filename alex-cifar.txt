@@ -1,0 +1,10 @@
+matmul 1024 4356
+lookup 3072
+matmul 1536 6400
+lookup 1924
+matmul 256  3456
+matmul 384  38
+matmul 256  256
+matmul 256  256
+matmul 256  256
+matmul 256  256

@@ -61,7 +61,7 @@ class SenderSubChannel : public SubChannel { public:
 		ptr = 0;
 	}
 	
-	void send_data(const void *data, int len) {
+	void send_data(const void *data, uint64_t len) {
 		if (len <= NETWORK_BUFFER_SIZE2 - ptr) {
 			memcpy(buf + ptr, data, len);
 			ptr += len;
@@ -72,9 +72,9 @@ class SenderSubChannel : public SubChannel { public:
 		}
 	}
 
-	void send_data_raw(const void *data, int len) {
+	void send_data_raw(const void *data, uint64_t len) {
 		counter += len;
-		int sent = 0;
+		uint64_t sent = 0;
 		while (sent < len) {
 			int res = fwrite(sent + (char *)data, 1, len - sent, stream);
 			if (res >= 0)
@@ -92,12 +92,12 @@ class RecverSubChannel : public SubChannel { public:
 		ptr = NETWORK_BUFFER_SIZE2;
 	}
 
-	void recv_data(void *data, int len) {
+	void recv_data(void *data, uint64_t len) {
 		if (len <= NETWORK_BUFFER_SIZE2 - ptr) {
 			memcpy(data, buf + ptr, len);
 			ptr += len;
 		} else {
-			int remain = len;
+			uint64_t remain = len;
 			memcpy(data, buf + ptr, NETWORK_BUFFER_SIZE2 - ptr);
 			remain -= NETWORK_BUFFER_SIZE2 - ptr;
 
@@ -115,9 +115,9 @@ class RecverSubChannel : public SubChannel { public:
 		}
 	}
 
-	void recv_data_raw(void *data, int len) {
+	void recv_data_raw(void *data, uint64_t len) {
 		counter += len;
-		int sent = 0;
+		uint64_t sent = 0;
 		while (sent < len) {
 			int res = fread(sent + (char *)data, 1, len - sent, stream);
 
@@ -210,7 +210,17 @@ class HighSpeedNetIO { public:
 		close(recv_sock);
 	}
 
-	void sync() {}
+	void sync() {
+		int tmp = 0;
+		if (is_server) {
+			send_data_internal(&tmp, 1);
+			recv_data_internal(&tmp, 1);
+		} else {
+			recv_data_internal(&tmp, 1);
+			send_data_internal(&tmp, 1);
+			flush();
+		}
+	}
 
 	void set_delay_opt(int sock, bool enable_nodelay) {
 		if (enable_nodelay) {
@@ -233,7 +243,7 @@ class HighSpeedNetIO { public:
 		FSM = 0;
 	}
 
-	void send_data_internal(const void *data, int len) {
+	void send_data_internal(const void *data, uint64_t len) {
 		// if (FSM == 1) {
 		// 	rchannel->flush();
 		// }
@@ -241,7 +251,7 @@ class HighSpeedNetIO { public:
 		FSM = 2;
 	}
 
-	void recv_data_internal(void *data, int len) {
+	void recv_data_internal(void *data, uint64_t len) {
 		// if (FSM == 2) {
 		// 	schannel->flush();
 		// }
@@ -253,8 +263,8 @@ class HighSpeedNetIO { public:
 class P2Pchannel{
 	private:
 	std::map<std::string, net::HighSpeedNetIO*> subio;
-	uint32_t send_len = 0;
-	uint32_t recv_len = 0;
+	double send_len = 0;
+	double recv_len = 0;
 	std::map<std::string, uint32_t> bytes_send_lens;
 	std::map<std::string, uint32_t> bytes_recv_lens;
 	std::map<std::string, uint32_t> ptrs_send;
@@ -328,7 +338,7 @@ class P2Pchannel{
 		}
 		return ret;
 	}
-	void send_data_to(std::string player, const void* data, int len){
+	void send_data_to(std::string player, const void* data, uint64_t len){
 		//if (FSM == 1) {
 			
 		//}
@@ -340,7 +350,7 @@ class P2Pchannel{
 		if(is_flush) flush_all();
 		#endif
 	}
-	void recv_data_from(std::string player, void* data, int len){
+	void recv_data_from(std::string player, void* data, uint64_t len){
 		#ifdef DISK_NET
 		
 		#else
@@ -357,9 +367,14 @@ class P2Pchannel{
 			v.second->flush();
 		}
 	}
+	void sync() {
+		for(auto &v : subio){
+			v.second->sync();
+		}
+	}
 	~P2Pchannel(){
-		printf("send data %u\n",send_len);
-		printf("recv data %u\n",recv_len);
+		printf("send data %lf\n",send_len);
+		printf("recv data %lf\n",recv_len);
 		//清理节点
 		for(auto &v : subio) delete v.second;
 	}

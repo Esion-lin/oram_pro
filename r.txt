@@ -1,0 +1,6 @@
+lookup 16384
+lookup 65536
+lookup 262144
+lookup 1048576
+lookup 2097152
+lookup 4194304

@@ -1,0 +1,769 @@
+lookup 100
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 10000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 1600
+lookup 1000
+lookup 1000
+lookup 1000
+lookup 1000
+matmul 1000 4800
+lookup 3000
+matmul 3000 1600

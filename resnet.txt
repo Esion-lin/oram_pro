@@ -1,0 +1,73 @@
+matmul 3072 3136
+lookup 16384 * 7
+matmul 4096 64
+matmul 4096 576
+matmul 4096 256
+matmul 4096 256
+
+matmul 16384 64
+matmul 4096 576
+matmul 4096 64
+
+matmul 16384 64
+matmul 4096 576
+matmul 4096 64
+
+matmul 16384 64
+matmul 8192 576
+matmul 8192 512
+matmul 8192 512
+
+matmul 32768 128
+matmul 8192 1152
+matmul 8192 512
+
+matmul 32768 128
+matmul 8192 1152
+matmul 8192 512
+
+matmul 32768 128
+matmul 8192 1152
+matmul 8192 512
+
+matmul 32768 256
+matmul 16384 2304
+matmul 16384 1024
+matmul 16384 1024
+
+matmul 65536 256
+matmul 16384 2304
+matmul 16384 1024
+
+matmul 65536 256
+matmul 16384 2304
+matmul 16384 1024
+
+matmul 65536 256
+matmul 16384 2304
+matmul 16384 1024
+
+matmul 65536 256
+matmul 16384 2304
+matmul 16384 1024
+
+matmul 65536 256
+matmul 16384 2304
+matmul 16384 1024
+
+matmul 125536 512
+matmul 32384 2304
+matmul 32384 2048
+matmul 32384 2048
+
+
+matmul 125536 512
+matmul 32384 2304
+matmul 32384 2048
+
+
+matmul 125536 512
+matmul 32384 2304
+matmul 32384 2048
+
+

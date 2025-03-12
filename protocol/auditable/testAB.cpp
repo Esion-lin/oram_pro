@@ -3,7 +3,6 @@
 #include <openssl/ecdsa.h>
 #include <openssl/evp.h>
 #include "BMR.h"
-#include "encoder.h" 
 #include "auditable.h"
 #include "timer.hpp"
 

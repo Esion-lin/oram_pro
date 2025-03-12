@@ -1,0 +1,19 @@
+matmul 36864 288
+matmul 786432 288
+lookup 196608
+matmul 196608 576
+matmul 393216 1152
+lookup 393216
+matmul 98304 2304
+matmul 196608 2304
+matmul 196608 2304
+lookup 196608
+matmul 49152 4608
+matmul 98304 4608
+matmul 98304 4608
+lookup 98304
+matmul 24576 4608
+matmul 24576 4608
+lookup 24576
+matmul 6144 256
+matmul 3072 10

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>  
 #include <map>
+#include "config.hpp"
 class Timer{
     public:
     Timer(){}

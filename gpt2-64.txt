@@ -1,0 +1,193 @@
+lookup 4915
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 49152
+lookup 491520
+lookup 49152
+matmul 49152 768
+lookup 49152
+lookup 49152
+lookup 49152
+lookup 49152
+matmul 49152 2304
+lookup 147456
+matmul 147456 768
