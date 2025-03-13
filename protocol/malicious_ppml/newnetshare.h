@@ -95,7 +95,7 @@ bool RevealBt(T* org, size_t lens){
         thread *threads = new thread[2];
 
 		threads[0] = thread(static_cast<void(*)(T*, size_t, size_t)>(sendVector<T>), org, 1, lens);
-threads[1] = thread(static_cast<void(*)(T*, size_t, size_t)>(receiveVector<T>), temp, 1, lens);
+        threads[1] = thread(static_cast<void(*)(T*, size_t, size_t)>(receiveVector<T>), temp, 1, lens);
 
 
 		for (int i = 0; i < 2; i++)

@@ -1,10 +1,11 @@
-
-#include <inttypes.h>
 #include "connect.h"
 #include "timer.hpp"
 #include <iostream>
 #include "sign.h"
 #include "signv.h"
+#include <stdint.h>
+#include <inttypes.h>
+
 Config* Config::myconfig;
 int partyNum;
 std::map<std::string, double> Timer::times;
@@ -22,34 +23,22 @@ int main(int argc, char** argv){
     int number = atoi(argv[2]);
     Sign<uint64_t>* sign = new Sign<uint64_t>(number);
     Signv<uint64_t>* signv = new Signv<uint64_t>(number);
-    std::vector<AShareT<uint64_t>> temp1(2*number), temp_z(2*number);
-    // init_ashare<uint64_t>(temp1, 1024);
-    // init_ashare<uint64_t>(temp_z, 1024);
+    std::vector<AShareT<uint64_t>> x(2*number), x_sign(2*number);
+    x[0].r = (1<<64)-1;
     start_communication();
     Timer::record("setup");
-    sign->set_up(temp1, temp_z, true);
-    //sign->set_up(temp1, temp_z, true);sign->set_up(temp1, temp_z, true);sign->set_up(temp1, temp_z, true);
+    sign->set_up(x, x_sign, true);
     Timer::stop("setup");
     Timer::record("online");
-    sign->online(temp1, temp_z);
-    // sign->online(temp1, temp_z);
-    // sign->online(temp1, temp_z);
-    // sign->online(temp1, temp_z);
-    // sign->online(temp1, temp_z);
-    // sign->online(temp1, temp_z);
-    // sign->online(temp1, temp_z);
-    // sign->online(temp1, temp_z);
-    // sign->online(temp1, temp_z);
-    // sign->online(temp1, temp_z);
+    sign->online(x, x_sign);
     Timer::stop("online");
-    // Timer::record("verify setup");
-    // signv->set_up(temp1, temp_z, true);
-    // Timer::stop("verify setup");
-    // Timer::record("verify online");
-    // signv->online(temp1, temp_z);
-    // Timer::stop("verify online");
+
     Timer::test_print();
     end_communication("test");
+
+    printf("x[0].r=0x%" PRIx64 "\n", x[0].r);
+    printf("x_sign[0].r=0x%" PRIx64 "\n", x_sign[0].r);
+
     delete sign;
     delete signv;
 }
