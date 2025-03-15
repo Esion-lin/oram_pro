@@ -4,10 +4,7 @@
 
 template<class T>
 bool ShareCt(const T* org, T* target, size_t lens, T p){
-    
     if(Config::myconfig->check("player0")){
-        //random_T<T>(target, lens);
-        printf("%d\n", lens);
         #pragma omp parallel for
         for(int i = 0; i < lens; i++){
             // printf("%d\n", i);
@@ -19,19 +16,16 @@ bool ShareCt(const T* org, T* target, size_t lens, T p){
         printf("start send %d\n", lens* sizeof(T));
         sendVector<T>(temp, 1, lens);
         printf("send done\n");
-        // P2Pchannel::mychnl->send_data_to("player1", temp, lens*sizeof(T));;
         free(temp);
     }else if(Config::myconfig->check("player1")){
         printf("start recejve \n");
         receiveVector<T>(target, 0, lens);
         printf(" recejved \n");
-        // P2Pchannel::mychnl->recv_data_from("player0", target, lens*sizeof(T));
-    }else{
-        random_T<T>(target, lens);
-        #pragma omp parallel for
-        for(int i = 0; i < lens; i++){
-            target[i] %= p;
-        }
+    }
+    random_T<T>(target, lens);
+    #pragma omp parallel for
+    for(int i = 0; i < lens; i++){
+        target[i] %= p;
     }
     return true;
 }

@@ -29,6 +29,13 @@ bool check_list(uint8_t *u, uint8_t *v, uint32_t lens){
     }
     return false;
 }
+bool check_list(uint8_t *u,uint32_t len){
+    for(int i = 0; i < len; i++){
+        if(u[i] == 0)
+            return true;
+    }
+    return false;
+}
 template<class T>
 void papply(T* z, const T* x, const T* y, uint32_t lens, std::function<T(T, T)> op){
 //     omp_set_num_threads(THREADS);
@@ -143,6 +150,9 @@ struct AShare{
 template<class T>
 struct AShareT{
     T r_1, r_2, r; // m_x
+
+    // P1\P2: r_1 -> m_x, r_2->[r_x]
+    // P0: r_1 ->r_x_1 r_2 ->r_x_2
     // ~AShare(){
     //     if(r_1!=nullptr){
     //         free(r_1);
