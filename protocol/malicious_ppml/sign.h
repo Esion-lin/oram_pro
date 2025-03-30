@@ -134,7 +134,6 @@ class Sign{
             Plist<LIST_LEN>* m_sigmas = (Plist<LIST_LEN>*)malloc(WIDTH*(LIST_LEN));
             Plist<LIST_LEN>* m_j= (Plist<LIST_LEN>*)malloc(WIDTH*(LIST_LEN));
             Plist<LIST_LEN>* w = (Plist<LIST_LEN>*)malloc(WIDTH*(LIST_LEN));
-            //why uint_8?
             //pick all w and w'
             random_T<uint8_t>((uint8_t*)w, WIDTH*(LIST_LEN));
 

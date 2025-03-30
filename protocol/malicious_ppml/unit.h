@@ -14,6 +14,7 @@ void random_T(T* target, uint32_t lens){
     AES_KEY aes_key;
     uint8_t seeds[16] = {0};
     memset(seeds, 0, 16);
+    assert(target!=nullptr);
     AES_set_encrypt_key(seeds, 128, &(aes_key));
     #pragma omp parallel for
     for(int i = 0; i < lens * sizeof(T) / 16; i ++)

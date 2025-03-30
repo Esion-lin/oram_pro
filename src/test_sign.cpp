@@ -2,7 +2,6 @@
 #include "timer.hpp"
 #include <iostream>
 #include "sign.h"
-#include "signv.h"
 #include <stdint.h>
 #include <inttypes.h>
 
@@ -13,7 +12,7 @@ std::map<std::string, struct timeval> Timer::ptrs;
 std::string Timer::now_name;
 int main(int argc, char** argv){
     srand((unsigned)time(NULL)); 
-    Config::myconfig = new Config("./3_p_config.json");
+    Config::myconfig = new Config("../test/3_p_config.json");
     
 	
     Config::myconfig->set_player(argv[1]);
@@ -22,7 +21,6 @@ int main(int argc, char** argv){
     synchronize(2000000);
     int number = atoi(argv[2]);
     Sign<uint64_t>* sign = new Sign<uint64_t>(number);
-    Signv<uint64_t>* signv = new Signv<uint64_t>(number);
     std::vector<AShareT<uint64_t>> x(number), x_sign(number);
 
     start_communication();
@@ -38,7 +36,6 @@ int main(int argc, char** argv){
 
 
     delete sign;
-    delete signv;
 }
 
 /*

@@ -14,10 +14,12 @@ struct Plist{
 template<uint32_t lens, uint32_t ll>
 struct Pvlist{
     uint8_t rb[lens];
+    uint8_t y[lens];
     uint8_t mac[lens][ll];
 };
 template<class T>
 void chop(T org, uint8_t* tar){
+    #pragma omp parallel for
     for(int i = 0; i < sizeof(T)*8; i++){
         tar[sizeof(T)*8 - 1 -i] = (org >> i) & 1;
     }
@@ -204,4 +206,10 @@ struct AShareT{
             r_1 *= a.r_1;
             r_2 *= a.r_2;
     }
+};
+
+template<class T,uint32_t lambda>
+struct AShareMAC{
+    const size_t lens = 8*sizeof(T);
+    T r[lambda][lens];
 };
