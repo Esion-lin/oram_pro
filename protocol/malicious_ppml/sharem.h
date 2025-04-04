@@ -14,8 +14,6 @@ struct Plist{
 template<uint32_t lens, uint32_t ll>
 struct Pvlist{
     uint8_t rb[lens];
-    uint8_t y[lens];
-    uint8_t mac[lens][ll];
 };
 template<class T>
 void chop(T org, uint8_t* tar){
@@ -210,6 +208,6 @@ struct AShareT{
 
 template<class T,uint32_t lambda>
 struct AShareMAC{
-    const size_t lens = 8*sizeof(T);
-    T r[lambda][lens];
+    static const size_t lens = 8*sizeof(T)+1;
+    uint16_t r_mac[lambda][lens];
 };

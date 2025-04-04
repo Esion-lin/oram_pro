@@ -27,9 +27,7 @@ int main(int argc, char** argv){
     Timer::record("setup");
     signv->set_up(x, x_sign, true);
     Timer::stop("setup");
-    Timer::record("online");
     signv->online(x, x_sign);
-    Timer::stop("online");
 
     Timer::test_print();
     end_communication("test");

@@ -1,4 +1,5 @@
 #!/bin/bash
+
 output_file=test_sign_malicious_output.log
 # 定义网络接口（根据实际情况修改）
 INTERFACE="lo"
@@ -8,6 +9,9 @@ SCENARIOS=(
     "100ms:1000mbit:MAN" # RTT 100ms, 带宽 1000Mbps
     "200ms:100mbit:WAN"  # RTT 200ms, 带宽 100Mbps
 )
+
+# 捕获 Ctrl+C 信号并终止所有 test_sign_malicious 进程
+trap 'echo "捕获到 Ctrl+C，终止所有 test_sign_malicious 进程..."; pkill -f test_sign_malicious; exit 1' SIGINT
 
 cd ../build
 make -j40
@@ -40,7 +44,7 @@ for scenario in "${SCENARIOS[@]}"; do
     # 从 2^4 到 2^18 的数据维度循环
     for ((dim=2; dim<=6; dim++))
     do
-        # 计算当前数据维度的实际值 (2^dim)
+        # 计算当前数据维度的实际值 (10^dim)
         data_size=$((10**dim))
         
         echo "Running tasks with data size: $data_size" | tee -a "${NAME}_$output_file"

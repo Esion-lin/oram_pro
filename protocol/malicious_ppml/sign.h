@@ -173,13 +173,14 @@ class Sign{
 
             }
             printf("online connect\n");
-            Timer::stop("online-compute");
-
+            //round 1
             Timer::record("communication");
             RevealCt<uint8_t>((uint8_t*)u_j, output.size()*(LIST_LEN), 67);
             T* backmessage=(T*)malloc(output.size()*sizeof(T));
             receiveVector<T>(backmessage, 0, output.size());
+
             Timer::stop("communication");
+            Timer::stop("online-compute");
 
             #pragma omp parallel for
             for(int i = 0; i < output.size(); i++){
@@ -206,7 +207,7 @@ class Sign{
                 }
 
             }
-
+            //round 1
             thread *threads = new thread[2];
 
             threads[0] = thread(static_cast<void(*)(T*, size_t, size_t)>(sendVector<T>), (T*)backmessage, 1, output.size());

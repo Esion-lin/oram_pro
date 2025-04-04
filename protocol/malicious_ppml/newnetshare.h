@@ -39,12 +39,9 @@ bool RevealCt(T* org, size_t lens, T p){
     if(Config::myconfig->check("player2") || Config::myconfig->check("player1")){
         
         sendVector<T>(org, 0, lens);
-        // P2Pchannel::mychnl->send_data_to("player0", org, lens*sizeof(T));
         
     }else if(Config::myconfig->check("player0")){
         T* temp = (T*) malloc(lens * sizeof(T));
-        // receiveVector<T>(temp, 1, lens);
-        // receiveVector<T>(org, 2, lens);
         thread *threads = new thread[2];
 
 		threads[0] = thread(static_cast<void(*)(T*, size_t, size_t)>(receiveVector<T>), temp, 1, lens);
@@ -52,15 +49,32 @@ bool RevealCt(T* org, size_t lens, T p){
 
 		for (int i = 0; i < 2; i++)
 			threads[i].join();
+		delete[] threads;   
 
+        add_T_mod(org, org, temp, lens, p);
+        free(temp);
+    }
+    return true;
+}
+template<class T>
+bool RevealCt1(T* org, size_t lens, T p){
+    if(Config::myconfig->check("player1")){
+        T* temp = (T*) malloc(lens * sizeof(T));
+
+        thread *threads = new thread[2];
+
+		threads[0] = thread(static_cast<void(*)(T*, size_t, size_t)>(receiveVector<T>), temp, 0, lens);
+		threads[1] = thread(static_cast<void(*)(T*, size_t, size_t)>(receiveVector<T>), org, 2, lens);
+
+		for (int i = 0; i < 2; i++)
+			threads[i].join();
 		delete[] threads;
-
-        // receiveVector(temp, 1, lens);
-        // receiveVector(org, 2, lens);
-        
         
         add_T_mod(org, org, temp, lens, p);
         free(temp);
+    }
+    else{
+        sendVector<T>(org, 1, lens);
     }
     return true;
 }
