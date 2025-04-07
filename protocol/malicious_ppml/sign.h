@@ -176,11 +176,11 @@ class Sign{
                 free(m_j);
                 free(w);
             //round 1
-            Timer::stop("Round 1");
 
             T* backmessage=(T*)malloc(WIDTH*sizeof(T));
             Timer::record("communication");
             RevealCt<uint8_t>((uint8_t*)u_j, WIDTH*(LIST_LEN), 67);
+            Timer::stop("Round 1");
             receiveVector<T>(backmessage, 0, WIDTH);
             Timer::stop("communication");
 
