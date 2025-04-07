@@ -22,7 +22,7 @@ int main(int argc, char** argv){
     int number = atoi(argv[2]);
     Signv<uint64_t>* signv = new Signv<uint64_t>(number);
     std::vector<AShareT<uint64_t>> x(number), x_sign(number);
-
+    printf("datasize=%d\n", number);
     start_communication();
     Timer::record("setup");
     signv->set_up(x, x_sign, true);

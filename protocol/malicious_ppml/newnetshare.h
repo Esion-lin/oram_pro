@@ -13,14 +13,10 @@ bool ShareCt(const T* org, T* target, size_t lens, T p){
         }
         T* temp = (T*)malloc(lens * sizeof(T));
         sub_T_mod<T>(temp, org, target, lens, p);
-        printf("start send %d\n", lens* sizeof(T));
         sendVector<T>(temp, 1, lens);
-        printf("send done\n");
         free(temp);
     }else if(Config::myconfig->check("player1")){
-        printf("start recejve \n");
         receiveVector<T>(target, 0, lens);
-        printf(" recejved \n");
     }
     random_T<T>(target, lens);
     #pragma omp parallel for

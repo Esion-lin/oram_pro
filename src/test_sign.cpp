@@ -22,13 +22,15 @@ int main(int argc, char** argv){
     int number = atoi(argv[2]);
     Sign<uint64_t>* sign = new Sign<uint64_t>(number);
     std::vector<AShareT<uint64_t>> x(number), x_sign(number);
-
+    printf("datasize=%d\n", number);
     start_communication();
     Timer::record("setup");
+    Timer::record("all");
     sign->set_up(x, x_sign, true);
     Timer::stop("setup");
     Timer::record("online");
     sign->online(x, x_sign);
+    Timer::stop("all");
     Timer::stop("online");
 
     Timer::test_print();

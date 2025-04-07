@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(ram_mpc_dt)
-SET(CMAKE_BUILD_TYPE "Debug")  
+SET(CMAKE_BUILD_TYPE "Release")  
 set(CMAKE_CXX_STANDARD 14)
 #SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -g2 -ggdb -g -O2")
 SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -Wall -g2 -ggdb -fsanitize=address -fno-omit-frame-pointer -g -O2 -msse4.1 -maes")   
