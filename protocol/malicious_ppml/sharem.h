@@ -17,7 +17,6 @@ struct Pvlist{
 };
 template<class T>
 void chop(T org, uint8_t* tar){
-    #pragma omp parallel for
     for(int i = 0; i < sizeof(T)*8; i++){
         tar[sizeof(T)*8 - 1 -i] = (org >> i) & 1;
     }

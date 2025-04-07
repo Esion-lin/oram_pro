@@ -51,18 +51,19 @@ class Sign{
     }
     void set_up(const std::vector<AShareT<T>>& x, std::vector<AShareT<T>>& output, bool need_gen){
 
-
         const size_t WIDTH = output.size();
+        omp_set_dynamic(0); 
+        omp_set_num_threads(std::min(WIDTH+3, (size_t)omp_get_max_threads()/6));
+
         r_x_i = (Plist<LIST_LEN>*)malloc(sizeof(Plist<LIST_LEN>)*WIDTH);
         r_z_p = (T*) malloc(WIDTH * sizeof(T));
-        size_t max_threads = omp_get_max_threads();
-        omp_set_num_threads(std::min(WIDTH, max_threads));
         Timer::record("Round 1");
         //seed 0 1 -> r'1 seed 0 2 -> r'2   r'1 + r'2 = r'
         //but here we generate all of them locally using same seed
         random_T<T>(r_z_p, WIDTH);
         uint32_t shiftsize = sizeof(T)*8 - 1;
         //chops r_x to r_1,...,r_l -> r_x_i
+
         if(Config::myconfig->check("player0")){
             #pragma omp parallel sections
             {
@@ -101,6 +102,7 @@ class Sign{
 
 
         }else{
+
             #pragma omp parallel sections
             {
             #pragma omp section
@@ -147,20 +149,21 @@ class Sign{
     }
     void online(const std::vector<AShareT<T>>& x, std::vector<AShareT<T>>& output){
         const size_t WIDTH = output.size();
-        size_t max_threads = std::min(WIDTH+3, (size_t)omp_get_max_threads());
-        omp_set_num_threads(max_threads);
+
         if(!Config::myconfig->check("player0")){
+            omp_set_num_threads(std::min(WIDTH+3, (size_t)omp_get_max_threads()/3));
+
             Timer::record("online-compute");
             uint32_t shiftsize = sizeof(T)*8 - 1;
 
             Plist<LIST_LEN>* u_j = (Plist<LIST_LEN>*)malloc(WIDTH*(LIST_LEN));
-
             Plist<LIST_LEN>* m_sigmas = (Plist<LIST_LEN>*)malloc(WIDTH*(LIST_LEN));
             Plist<LIST_LEN>* m_j= (Plist<LIST_LEN>*)malloc(WIDTH*(LIST_LEN));
             Plist<LIST_LEN>* w = (Plist<LIST_LEN>*)malloc(WIDTH*(LIST_LEN));
             //pick all w and w'
             random_T<uint8_t>((uint8_t*)w, WIDTH*(LIST_LEN));
-            #pragma omp parallel for schedule(static)
+
+            #pragma omp parallel for 
             for(int k = 0; k < WIDTH; k++){
                  //maybe need to set m_sigmas_l and rl to 0
                 chop<T>(x[k].r_1, m_sigmas[k].rb);
