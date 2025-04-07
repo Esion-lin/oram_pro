@@ -52,7 +52,6 @@ class Sign{
     void set_up(const std::vector<AShareT<T>>& x, std::vector<AShareT<T>>& output, bool need_gen){
 
         const size_t WIDTH = output.size();
-        omp_set_dynamic(0); 
         omp_set_num_threads(std::min(WIDTH+3, (size_t)omp_get_max_threads()/6));
 
         r_x_i = (Plist<LIST_LEN>*)malloc(sizeof(Plist<LIST_LEN>)*WIDTH);
@@ -65,10 +64,6 @@ class Sign{
         //chops r_x to r_1,...,r_l -> r_x_i
 
         if(Config::myconfig->check("player0")){
-            #pragma omp parallel sections
-            {
-                #pragma omp section
-                {
                     add_T<T>(r_z_p, r_z_p, r_z_p, WIDTH);
                     //chop r_x to r_1,...,r_l,without sign bit
                     #pragma omp parallel for 
@@ -82,14 +77,12 @@ class Sign{
                     ShareCt<uint8_t>((uint8_t*)r_x_i, temp, WIDTH*(LIST_LEN), 67);
                     Timer::stop("communication");
                     free(temp);
-                }
-                #pragma omp section
                 if(need_gen){
                     T* r_1= (T*)malloc(WIDTH*sizeof(T));
                     random_T<T>(r_1, WIDTH);
                     T* r_2= (T*)malloc(WIDTH*sizeof(T));
                     random_T<T>(r_2, WIDTH);
-                    #pragma omp parallel for 
+                    #pragma omp parallel for
                     for(int i = 0; i < WIDTH; i++){
                         output[i].r = r_1[i] + r_2[i];
                         output[i].r_1 = r_1[i];
@@ -98,26 +91,18 @@ class Sign{
                     free(r_1);
                     free(r_2);
                 }
-            }
-
 
         }else{
-
-            #pragma omp parallel sections
-            {
-            #pragma omp section
             if(need_gen){
                 T* rr= (T*)malloc(WIDTH*sizeof(T));
                 random_T<T>(rr, WIDTH);
                 //generate r_z
-                #pragma omp parallel for 
+                #pragma omp parallel for
                 for(int i = 0; i < WIDTH; i++){
                     output[i].r_1 = rr[i];
                 }
                 free(rr);
-            }
-            #pragma omp section
-            {            
+            }          
                 delta = (uint8_t*)malloc(WIDTH*sizeof(uint8_t));
                 random_T<uint8_t>(delta, WIDTH);
                 memset(delta, 0, WIDTH*sizeof(uint8_t));
@@ -141,11 +126,6 @@ class Sign{
                 RevealBt<T>(gammas, WIDTH);
                 Timer::stop("communication");
             }
-            }
-
-
-
-        }
     }
     void online(const std::vector<AShareT<T>>& x, std::vector<AShareT<T>>& output){
         const size_t WIDTH = output.size();
