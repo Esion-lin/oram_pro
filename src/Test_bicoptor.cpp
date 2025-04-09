@@ -12,7 +12,7 @@ std::map<std::string, struct timeval> Timer::ptrs;
 std::string Timer::now_name;
 int main(int argc, char** argv){
     srand((unsigned)time(NULL)); 
-    Config::myconfig = new Config("./3_p_config.json");
+    Config::myconfig = new Config("../test/3_p_config.json");
     
 	
     Config::myconfig->set_player(argv[1]);
@@ -20,8 +20,8 @@ int main(int argc, char** argv){
     initializeCommunication(partyNum);
     synchronize(2000000);
     int number = atoi(argv[2]);
-    Bicoptor<uint64_t>* bicoptor = new Bicoptor<uint64_t>(number);
-    std::vector<uint64_t> temp1(number), temp_z(number);
+    Bicoptor<__int128_t>* bicoptor = new Bicoptor<__int128_t>(number);
+    std::vector<__int128_t> temp1(number), temp_z(number);
     // init_ashare<uint64_t>(temp1, 1024);
     // init_ashare<uint64_t>(temp_z, 1024);
     start_communication();
