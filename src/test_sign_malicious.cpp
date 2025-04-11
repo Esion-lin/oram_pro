@@ -25,9 +25,14 @@ int main(int argc, char** argv){
     printf("datasize=%d\n", number);
     start_communication();
     Timer::record("setup");
+    Timer::record("all");
     signv->set_up(x, x_sign, true);
     Timer::stop("setup");
+    Timer::record("online");
     signv->online(x, x_sign);
+    Timer::stop("online");
+
+    Timer::stop("all");
 
     Timer::test_print();
     end_communication("test");

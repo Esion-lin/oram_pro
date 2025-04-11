@@ -1,5 +1,4 @@
 #!/bin/bash
-
 output_file=test_sign_malicious_output.log
 # 定义网络接口（根据实际情况修改）
 INTERFACE="lo"
@@ -15,7 +14,7 @@ trap 'echo "捕获到 Ctrl+C，终止所有 test_sign_malicious 进程..."; pkil
 
 cd ../build
 make -j24
-rm -rf ../test/semi-honest/
+rm -rf ../test/malicious/
 mkdir ../test/malicious/
 
 # 遍历所有场景

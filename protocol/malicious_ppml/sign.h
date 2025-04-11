@@ -128,10 +128,11 @@ class Sign{
             }
     }
     void online(const std::vector<AShareT<T>>& x, std::vector<AShareT<T>>& output){
+        Timer::record("Online-Round 1");
         const size_t WIDTH = output.size();
+        omp_set_num_threads(std::min(WIDTH+3, (size_t)omp_get_max_threads()/3));
 
         if(!Config::myconfig->check("player0")){
-            omp_set_num_threads(std::min(WIDTH+3, (size_t)omp_get_max_threads()/3));
 
             Timer::record("online-compute");
             uint32_t shiftsize = sizeof(T)*8 - 1;
@@ -142,45 +143,42 @@ class Sign{
             Plist<LIST_LEN>* w = (Plist<LIST_LEN>*)malloc(WIDTH*(LIST_LEN));
             //pick all w and w'
             random_T<uint8_t>((uint8_t*)w, WIDTH*(LIST_LEN));
+            uint16_t sum_of_m[LIST_LEN];
 
             #pragma omp parallel for 
             for(int k = 0; k < WIDTH; k++){
                  //maybe need to set m_sigmas_l and rl to 0
                 chop<T>(x[k].r_1, m_sigmas[k].rb);
-                auto sign_m=m_sigmas[k].rb[8*sizeof(T)-1];
                 m_sigmas[k].rb[8*sizeof(T)-1] = 1;
-                uint8_t sum_of_m[LIST_LEN];
+               delta[k]=0xff*delta[k];
                 // cal sum of m
                 sum_of_m[0] = m_sigmas[k].rb[0];
-                for(int i=1;i<LIST_LEN;i++){
-                    sum_of_m[i] = (m_j[k].rb[i]+sum_of_m[i-1]) % 67;
-                }
                 for(int i=0;i<LIST_LEN;i++){
+                        sum_of_m[i] = (m_j[k].rb[i]+sum_of_m[i-1]) % 67;
                         uint8_t temp_m=0;
+                        auto sign_m=m_sigmas[k].rb[8*sizeof(T)-1];
                         // step 3 m_j = (m_sigma + r_x_i - 2*m_sigma*r_x_i) mod p
                         m_j[k].rb[i]=(r_x_i[k].rb[i] + 134 - 2 * m_sigmas[k].rb[i] * r_x_i[k].rb[i] ) % 67;
-                        if(Config::myconfig->check("player1"))
+                        if(Config::myconfig->check("player2")){
                             m_j[k].rb[i] = (m_j[k].rb[i] + 1) % 67;
+                            temp_m = (temp_m + 1) % 67;
+                        }
                         //step 5 m' =(sum_of_m - 2*m_j + 1) mod p;
                         temp_m = (sum_of_m[i] - 2 * m_j[k].rb[i]) % 67;
-                        if(Config::myconfig->check("player1"))
-                            temp_m = (temp_m + 1) % 67;
                         //step 5 u_j 
-                        if(delta[k]!=0)delta[k]=0xff;
-                        u_j[k].rb[i] = w[k].rb[i] * temp_m * (1 ^ sign_m ^ m_sigmas[k].rb[i] ^ delta[k]) +
-                            w[k].rb[i] * ( sign_m ^ m_sigmas[k].rb[i] ^ delta[k] );
-                        u_j[k].rb[i] %= 67;
+                        uint8_t xor_result = sign_m ^ m_sigmas[k].rb[i] ^ delta[k];
+                        uint16_t temp_u_j = w[k].rb[i] * temp_m * (1 ^ xor_result) + w[k].rb[i] * xor_result;
+                        u_j[k].rb[i] = (temp_u_j) % 67;
                     }
                 }
-                free(m_sigmas);
-                free(m_j);
-                free(w);
+
             //round 1
 
-            T* backmessage=(T*)malloc(WIDTH*sizeof(T));
             Timer::record("communication");
             RevealCt<uint8_t>((uint8_t*)u_j, WIDTH*(LIST_LEN), 67);
+            Timer::stop("Online-Round 1");
             Timer::stop("Round 1");
+            T* backmessage=(T*)malloc(WIDTH*sizeof(T));
             receiveVector<T>(backmessage, 0, WIDTH);
             Timer::stop("communication");
 
@@ -191,17 +189,21 @@ class Sign{
                 //r_2 is m_z
                 output[i].r_2 = backmessage[i] - 2 * delta[i] * backmessage[i] + gammas[i];
             }
-            
+            free(m_sigmas);
+            free(m_j);
+            free(w);
             free(u_j);
             free(backmessage);
 
         }else{
             Plist<LIST_LEN>* u_j = (Plist<LIST_LEN>*)malloc(WIDTH*(LIST_LEN));
-            T* backmessage=(T*)malloc(WIDTH*sizeof(T));
             
             Timer::record("communication");
             RevealCt<uint8_t>((uint8_t*)u_j, WIDTH*(LIST_LEN), 67);
+            Timer::stop("Online-Round 1");
+            Timer::stop("Round 1");
             Timer::stop("communication");
+            T* backmessage=(T*)malloc(WIDTH*sizeof(T));
 
             #pragma omp parallel for
             for(int i = 0; i < WIDTH; i++){
@@ -214,13 +216,11 @@ class Sign{
                 }
 
             }
-            Timer::stop("Round 1");
 
             Timer::record("communication");
-            sendVector<T>(backmessage, 1, WIDTH);
             sendVector<T>(backmessage, 2, WIDTH);
+            sendVector<T>(backmessage, 1, WIDTH);
             Timer::stop("communication");
-
             free(u_j);
             free(backmessage);
         }

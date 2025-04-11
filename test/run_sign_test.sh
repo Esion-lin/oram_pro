@@ -41,9 +41,9 @@ for scenario in "${SCENARIOS[@]}"; do
         echo "Running tasks with data size: $data_size" | tee -a "${NAME}_$output_file"
         
         # 运行三个子任务并将输出附加到文件
+        ./test_sign player0 $data_size >> "../test/semi-honest/${NAME}_output_player0.log" 2>&1 &
         ./test_sign player1 $data_size >> "../test/semi-honest/${NAME}_output_player1.log" 2>&1 &
         ./test_sign player2 $data_size >> "../test/semi-honest/${NAME}_output_player2.log" 2>&1 &
-        ./test_sign player0 $data_size >> "../test/semi-honest/${NAME}_output_player0.log" 2>&1 &
 
         wait
         echo "Completed tasks for data size: $data_size" | tee -a "${NAME}_$output_file"

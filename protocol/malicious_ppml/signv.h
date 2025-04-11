@@ -11,11 +11,12 @@
 #include <inttypes.h>
 #include <NTL/ZZX.h>
 #include "timer.hpp"
+#include <omp.h>
 using namespace NTL;
 #define THREADS 2
 const int P=67;
 #define LENGTH 8*sizeof(T)+1
-#define LAMBDA 4
+#define LAMBDA 6
 
 template<class T>
 class Signv{
@@ -136,8 +137,10 @@ class Signv{
         
     }
     void set_up(const std::vector<AShareT<T>>& x, std::vector<AShareT<T>>& output, bool need_gen){
-        r_x_i = (Pvlist<LENGTH, LENGTH>*)malloc(sizeof(Pvlist<LENGTH, LENGTH>)*output.size());
         const size_t WIDTH = output.size();
+        omp_set_num_threads(std::min(WIDTH+3, (size_t)omp_get_max_threads()/3));
+        r_x_i = (Pvlist<LENGTH, LENGTH>*)malloc(sizeof(Pvlist<LENGTH, LENGTH>)*output.size());
+
         rl = (T*)malloc(sizeof(T)*WIDTH);
         rll = (T*)malloc(sizeof(T)*WIDTH);
         r_z = (T*)malloc(sizeof(T)*WIDTH);
@@ -259,7 +262,6 @@ class Signv{
         if(Config::myconfig->check("player0")){
             #pragma omp parallel for
             for(int i=0;i<WIDTH;i++){
-                    #pragma omp parallel for
                     for(int j=0;j<LENGTH-1;j++){
                     auto r_rx_l=(1<<LENGTH-1);
                     auto m_rx_l=(1<<LENGTH-1);
@@ -284,7 +286,6 @@ class Signv{
         else if(Config::myconfig->check("player1")){
             #pragma omp parallel for
             for(int i=0;i<WIDTH;i++){
-                #pragma omp parallel for
                 for(int j=0;j<LENGTH-1;j++){
                     auto r_rx=(1<<LENGTH-1);
                     auto m_rx=(1<<LENGTH-1);
@@ -308,7 +309,6 @@ class Signv{
         }else if(Config::myconfig->check("player2")){
             #pragma omp parallel for
             for(int i=0;i<WIDTH;i++){
-                #pragma omp parallel for
                 for(int j=0;j<LENGTH-1;j++){
                     auto r_rx=(1<<LENGTH-1);
                     auto r_rx_l=(1<<LENGTH-1);
@@ -339,7 +339,6 @@ class Signv{
                 Plist<LENGTH> temp,temp_l;
                 chop<T>(r_x_share[i], temp.rb);
                 chop<T>(r_x_l_share[i], temp_l.rb);
-                #pragma omp parallel for
                 for(int l=0;l<LAMBDA;l++){
                     for(int j=0;j<LENGTH;j++){
                         r_x_share_mac[i].r_mac[l][j]=(temp.rb[j] * alpha[l]) % P;
@@ -381,7 +380,6 @@ class Signv{
             fprintf(stderr, "Memory allocation failed\n");
             exit(EXIT_FAILURE);
         }
-        Timer::record("online");
 
         // Calculate m_x_l
         if (!Config::myconfig->check("player0")) { // P1 P2
@@ -435,7 +433,6 @@ class Signv{
                 auto sign_m=m_sigmas[k].rb[8*sizeof(T)-1];
                 m_sigmas[k].rb[8*sizeof(T)-1] = 1;
                 uint8_t sum_of_m = 0;
-                #pragma omp parallel for
                 for(int i=0;i<LENGTH;i++){
                     Plist<LENGTH> temp_m_i;
                     // step 3 m_j = (m_sigma + r_x_i - 2*m_sigma*r_x_i) mod p
@@ -460,7 +457,6 @@ class Signv{
                 #pragma omp parallel for
                 for(int l=0;l<LAMBDA;l++){
                     uint8_t sum_of_m = 0;
-                    #pragma omp parallel for
                     for(int i=0;i<LENGTH;i++){
                         Plist<LENGTH> temp_m_i;
                         m_j_mac[k].r_mac[l][i]=(r_x_share_mac[k].r_mac[l][i] + 134 - 2 * m_sigmas[k].rb[i] * r_x_share_mac[k].r_mac[l][i] ) % 67;
@@ -587,7 +583,6 @@ class Signv{
                 auto sign_m=m_sigmas[k].rb[8*sizeof(T)-1];
                 m_sigmas[k].rb[8*sizeof(T)-1] = 1;
                 uint8_t sum_of_m = 0;
-                #pragma omp parallel for
                 for(int i=0;i<LENGTH;i++){
                     Plist<LENGTH> temp_m_i;
                     // step 3 m_j = (m_sigma + r_x_i - 2*m_sigma*r_x_i) mod p
@@ -612,7 +607,6 @@ class Signv{
                 #pragma omp parallel for
                 for(int l=0;l<LAMBDA;l++){
                     uint8_t sum_of_m = 0;
-                    #pragma omp parallel for
                     for(int i=0;i<LENGTH;i++){
                         Plist<LENGTH> temp_m_i;
                         m_j_mac[k].r_mac[l][i]=(r_x_l_share_mac[k].r_mac[l][i] + 134 - 2 * m_sigmas[k].rb[i] * r_x_l_share_mac[k].r_mac[l][i] ) % 67;
@@ -731,7 +725,6 @@ class Signv{
 
             delete[] threads;
         }
-        Timer::stop("online");
 
         free(u_j);
         free(u_j_mac);
