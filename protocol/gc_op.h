@@ -84,6 +84,7 @@ class Bitwise{
     void run_with_R_A(uint64_t R, uint64_t A, std::string file, std::string sender, std::string recver, uint16_t lens);
     void prepare_ot(uint32_t lens, std::string sender, std::string recver);
     void to_Y(std::string sender, std::string recver, uint64_t R, uint64_t A, int lens);
+    void bitextract(uint64_t* R, uint64_t* A,uint64_t* C, int lens, int vec_size);
     void run(std::string sender, std::string recver, std::string file, uint16_t lens);
     void runs(std::string sender, std::string recver, std::vector<std::string> files, uint16_t lens);
     void to_A(std::string sender, std::string recver, uint16_t lens);

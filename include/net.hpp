@@ -22,9 +22,8 @@ using std::string;
 
 //#include "easylogging++.h"
 namespace net {
-const static int NETWORK_BUFFER_SIZE2 = 1024*128;
-const static int NETWORK_BUFFER_SIZE = 128*1024*1024;
-
+	const static int NETWORK_BUFFER_SIZE2 = 1024 * 1;  // 减小到 64 KB
+	const static int NETWORK_BUFFER_SIZE = 5 * 1024 * 1024 * 1024;  // 增加到 256 MB
 
 
 class SubChannel { public:
@@ -76,11 +75,22 @@ class SenderSubChannel : public SubChannel { public:
 		counter += len;
 		uint64_t sent = 0;
 		while (sent < len) {
-			int res = fwrite(sent + (char *)data, 1, len - sent, stream);
-			if (res >= 0)
-				sent += res;
-			else
-				fprintf(stderr, "error: net_send_data %d\n", res);
+			fd_set write_fds;
+			FD_ZERO(&write_fds);
+			FD_SET(sock, &write_fds);
+	
+			// 使用 select 等待套接字可写
+			struct timeval timeout = {0, 200000}; // 100ms 超时
+			int ready = select(sock + 1, nullptr, &write_fds, nullptr, &timeout);
+			if (ready > 0 && FD_ISSET(sock, &write_fds)) {
+				int res = write(sock, (char *)data + sent, len - sent);
+				if (res > 0) {
+					sent += res;
+				} else if (res == -1 && (errno != EAGAIN && errno != EWOULDBLOCK)) {
+					fprintf(stderr, "error: net_send_data %d\n", res);
+					break;
+				}
+			}
 		}
 	}
 };
@@ -117,14 +127,24 @@ class RecverSubChannel : public SubChannel { public:
 
 	void recv_data_raw(void *data, uint64_t len) {
 		counter += len;
-		uint64_t sent = 0;
-		while (sent < len) {
-			int res = fread(sent + (char *)data, 1, len - sent, stream);
-
-			if (res >= 0)
-				sent += res;
-			else
-				fprintf(stderr, "error: net_send_data %d\n", res);
+		uint64_t received = 0;
+		while (received < len) {
+			fd_set read_fds;
+			FD_ZERO(&read_fds);
+			FD_SET(sock, &read_fds);
+	
+			// 使用 select 等待套接字可读
+			struct timeval timeout = {0, 200000}; // 1000ms 超时
+			int ready = select(sock + 1, &read_fds, nullptr, nullptr, &timeout);
+			if (ready > 0 && FD_ISSET(sock, &read_fds)) {
+				int res = read(sock, (char *)data + received, len - received);
+				if (res > 0) {
+					received += res;
+				} else if (res == -1 && (errno != EAGAIN && errno != EWOULDBLOCK)) {
+					fprintf(stderr, "error: net_recv_data %d\n", res);
+					break;
+				}
+			}
 		}
 	}
 };

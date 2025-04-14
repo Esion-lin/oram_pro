@@ -1,6 +1,0 @@
-matmul 16384 100
-matmul 65536 100
-matmul 262144 100
-matmul 1048576 100
-matmul 2097152 100
-matmul 4194304 100

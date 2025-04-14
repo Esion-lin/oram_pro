@@ -13,6 +13,19 @@ void send_pt(Point *A, P2Pchannel * p2pchnl, std::string st, int num_pts = 1) {
     }
 }
 
+template<typename T>
+void to_binary(T* a, bool* bin_a, int vec_size){
+    uint64_t d_data;
+    for(int j = 0; j < vec_size; j ++){
+        memcpy(&d_data, &a[j], sizeof(T));
+        for(int i = 0; i < sizeof(T) * 8; i ++){
+            bin_a[i + j * sizeof(T)] = d_data % 2;
+            d_data /= 2;
+        }
+    }
+
+}
+
 void recv_pt(Group * g, Point *A, P2Pchannel * p2pchnl, std::string st, int num_pts = 1) {
     size_t len = 0;
     for(int i = 0; i < num_pts; ++i) {
@@ -211,6 +224,179 @@ void Bitwise::run_with_R_A(uint64_t R, uint64_t A, std::string file, std::string
 void Bitwise::prepare_ot(uint32_t lens, std::string sender, std::string recver){
     ot->gen_rot(lens, sender, recver);
 }
+void Bitwise::bitextract(uint64_t* R, uint64_t* A,uint64_t* C, int lens, int vec_size){
+    printf("vec_size: %d\n", vec_size);
+    bool* select_a = (bool*)malloc(lens * vec_size * sizeof(bool));
+    bool* select_b = (bool*)malloc(lens * vec_size * sizeof(bool));
+    bool* select_c = (bool*)malloc(lens * vec_size * sizeof(bool));
+    bool* select_r = (bool*)malloc(vec_size * sizeof(bool));
+    bool* select_flag = (bool*)malloc(vec_size * sizeof(bool));
+    
+    block* label_a = (block*)malloc(lens * vec_size * sizeof(block));
+    block* label_b = (block*)malloc(lens * vec_size * sizeof(block));
+    block* label_c = (block*)malloc(lens * vec_size * sizeof(block));
+    block* label_r = (block*)malloc(vec_size * sizeof(block));
+    block* label_flag = (block*)malloc(vec_size * sizeof(block));
+    
+    block* label_a_f = (block*)malloc(lens * vec_size * sizeof(block));
+    block* label_b_f = (block*)malloc(lens * vec_size * sizeof(block));
+    block* label_c_f = (block*)malloc(lens * vec_size * sizeof(block));
+    block* label_r_f = (block*)malloc(vec_size * sizeof(block));
+    block* label_flag_f = (block*)malloc(vec_size * sizeof(block));
+    block* garbled_table = (block*)malloc(2 * lens * vec_size * sizeof(block));
+    to_binary<uint64_t>(R, select_a, vec_size);
+    to_binary<uint64_t>(A, select_b, vec_size);
+    to_binary<uint64_t>(C, select_c, vec_size);
+    //random -> select_r[vec_size], select_flag[vec_size];
+    if(st == "player0" || st == "player1"){
+        if(st == "player0"){
+            HalfGateGen<ED_P2Pch>::circ_exec = new HalfGateGen<ED_P2Pch>(static_cast<ED_P2Pch*>(P2Pchannel::mychnl));
+        }
+        prg.random_block(label_a, lens * vec_size);
+        prg.random_block(label_b, lens * vec_size); 
+        prg.random_block(label_r, vec_size);
+        prg.random_block(label_flag, vec_size); 
+        block delta;
+        #pragma omp parallel for
+        for(int i = 0; i < lens; i ++) {
+            if(select_a[i]){
+                label_a_f[i] = label_a[i];
+            }else{
+                label_a_f[i] = label_a[i] ^ delta;
+            }
+            if(st == "player0"){
+                if(select_b[i]){
+                    label_b_f[i] = label_b[i];
+                }else{
+                    label_b_f[i] = label_b[i] ^ delta;
+                }
+            }
+            if(st == "player1"){
+                label_b_f[i] = label_b[i];
+            }
+            if(st == "player0"){
+                if(select_c[i]){
+                    label_c_f[i] = label_c[i];
+                }else{
+                    label_c_f[i] = label_c[i] ^ delta;
+                }
+            }
+            if(st == "player1"){
+                label_c_f[i] = label_c[i];
+               
+            }
+        }
+        #pragma omp parallel for
+        for(int i = 0; i < vec_size; i ++) {
+            if(select_a[i]){
+                label_flag_f[i] = label_r[i];
+            }else{
+                label_flag_f[i] = label_r[i] ^ delta;
+            }
+            if(select_b[i]){
+                label_flag_f[i] = label_flag[i];
+            }else{
+                label_flag_f[i] = label_flag[i] ^ delta;
+            }
+        }
+        //send to P_2
+        //p2pchnl->send_data_to(recver, d, length * 2 * sizeof(block));
+
+        P2Pchannel::mychnl->send_data_to("player2", label_a_f, lens * vec_size * sizeof(block));
+        P2Pchannel::mychnl->send_data_to("player2", label_b_f, lens * vec_size * sizeof(block));
+        P2Pchannel::mychnl->send_data_to("player2", label_c_f, lens * vec_size * sizeof(block));
+        P2Pchannel::mychnl->send_data_to("player2", label_r_f,  vec_size * sizeof(block));
+        P2Pchannel::mychnl->send_data_to("player2", label_flag_f,  vec_size * sizeof(block));
+        block* temp = (block*)malloc(lens * vec_size * sizeof(block));
+        block* outtt = (block*)malloc(vec_size * sizeof(block));
+        bool* otout = (bool*)malloc(vec_size * sizeof(bool));
+        
+        if(st == "player0"){
+            BristolFormat cf("../cir/sub64.txt");
+            P2Pchannel::mychnl->send_data_to("player2", garbled_table, 2*lens * vec_size * sizeof(block));
+            for(int i = 0; i < vec_size; i++){
+                cf.compute(temp+(i * lens), label_a_f+(i * lens), label_b_f+(i * lens));
+                cf.compute(temp+(i * lens), temp+(i * lens), label_c_f+(i * lens));
+                outtt[i] = temp[i * lens];
+            }
+            
+        }
+        if(st == "player1"){
+            P2Pchannel::mychnl->recv_data_from("player2", outtt,  vec_size * sizeof(block));
+            P2Pchannel::mychnl->send_data_to("player0", otout,  vec_size * sizeof(bool));
+        }else{
+            P2Pchannel::mychnl->recv_data_from("player1", otout,  vec_size * sizeof(bool));
+            P2Pchannel::mychnl->recv_data_from("player2", otout,  vec_size * sizeof(bool));
+            //check consistant
+        }
+        free(temp);
+        free(outtt);
+        free(otout);
+        // if(st == "player0"){
+        //     delete HalfGateGen<ED_P2Pch>::circ_exec;
+        // }
+    }
+    else{
+        HalfGateEva<ED_P2Pch>::circ_exec = new HalfGateEva<ED_P2Pch>(static_cast<ED_P2Pch*>(P2Pchannel::mychnl));
+        P2Pchannel::mychnl->recv_data_from("player0", label_a_f, lens * vec_size * sizeof(block));
+        P2Pchannel::mychnl->recv_data_from("player0", label_b_f, lens * vec_size * sizeof(block));
+        P2Pchannel::mychnl->recv_data_from("player0", label_c_f, lens * vec_size * sizeof(block));
+        P2Pchannel::mychnl->recv_data_from("player0", label_r_f,  vec_size * sizeof(block));
+        P2Pchannel::mychnl->recv_data_from("player0", label_flag_f,  vec_size * sizeof(block));
+        
+        P2Pchannel::mychnl->recv_data_from("player1", label_a_f, lens * vec_size * sizeof(block));
+        P2Pchannel::mychnl->recv_data_from("player1", label_b_f, lens * vec_size * sizeof(block));
+        P2Pchannel::mychnl->recv_data_from("player1", label_c_f, lens * vec_size * sizeof(block));
+        P2Pchannel::mychnl->recv_data_from("player1", label_r_f,  vec_size * sizeof(block));
+        P2Pchannel::mychnl->recv_data_from("player1", label_flag_f,  vec_size * sizeof(block));
+        BristolFormat cf("../cir/sub64.txt");
+        block* temp = (block*)malloc(lens * vec_size * sizeof(block));
+        block* outtt = (block*)malloc(vec_size * sizeof(block));
+        bool* otout = (bool*)malloc(vec_size * sizeof(bool));
+        P2Pchannel::mychnl->recv_data_from("player0", garbled_table, 2*vec_size * sizeof(block));
+        for(int i = 0; i < vec_size; i++){
+            cf.compute(temp+(i * lens), label_a_f+(i * lens), label_b_f+(i * lens));
+            cf.compute(temp+(i * lens), temp+(i * lens), label_c_f+(i * lens));
+            outtt[i] = temp[i * lens];
+        }
+        P2Pchannel::mychnl->send_data_to("player1", outtt,  vec_size * sizeof(block));
+        P2Pchannel::mychnl->send_data_to("player0", otout,  vec_size * sizeof(bool));
+        //delete HalfGateEva<ED_P2Pch>::circ_exec;
+        free(temp);
+        free(outtt);
+        free(otout);
+    }
+    free(select_a);
+    free(select_b);
+    free(select_c);
+    free(select_r);
+    free(select_flag);
+    free(garbled_table);
+    free(label_a);
+    free(label_b);
+    free(label_c);
+    free(label_r);
+    free(label_flag);
+
+    free(label_a_f);
+    free(label_b_f);
+    free(label_c_f);
+    free(label_r_f);
+    free(label_flag_f);
+    
+}
+/*
+void send_block(const emp::block* data, int nblock) {
+    if(st == "player0")
+        send_data_to("player2", data, nblock*sizeof(block));
+    if(st == "player2")
+        send_data_to("player0", data, nblock*sizeof(block));
+    if(st == "player1")
+        send_data_to("player3", data, nblock*sizeof(block));
+    if(st == "player3")
+        send_data_to("player1", data, nblock*sizeof(block));
+}
+        */
 void Bitwise::to_Y(std::string sender, std::string recver, uint64_t R, uint64_t A, int lens=64){
     bool select_a[lens],select_b[lens],select_r[lens], select_flag[lens];
     to_binary<uint64_t>(R, select_a, lens);

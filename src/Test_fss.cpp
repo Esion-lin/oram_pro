@@ -30,9 +30,8 @@ int main(int argc, char** argv){
     Timer::record("Online");
     initializeClient(&server_key, 4, 2);
     uint32_t b = 1;
-    //#pragma omp parallel for
-    omp_set_num_threads((size_t)omp_get_max_threads()/3);
-
+    omp_set_num_threads((size_t)omp_get_max_threads()/6);
+    printf("datasize: %d\n", number);
     
     uint8_t* testdata = (uint8_t*)malloc(number * (34 * 63 + 34));
     if(Config::myconfig->check("player0")){
@@ -41,25 +40,33 @@ int main(int argc, char** argv){
         for(int i = 0; i < number; i++){
             generateTreeLt(&server_key, &k0, &k1, 3, 4);
         }
+        Timer::record("communication");
         P2Pchannel::mychnl->send_data_to("player1",testdata,number * (34 * 63 + 34));
         P2Pchannel::mychnl->send_data_to("player2",testdata,number * (34 * 63 + 34));
+        Timer::stop("communication");
+
         
-        
-    }else{
+    }else{       
+        Timer::record("communication");
         P2Pchannel::mychnl->recv_data_from("player0",testdata,number * (34 * 63 + 34));
+        Timer::stop("communication");
+
     }
     uint8_t* testdata2 = (uint8_t*)malloc(number * 8);
     Timer::stop("Online");
     if(Config::myconfig->check("player1")){
         //send key to P1 and P2
-        
+        Timer::record("communication");
         P2Pchannel::mychnl->send_data_to("player2",testdata2,number * 8);
         P2Pchannel::mychnl->recv_data_from("player2",testdata,number * 8);
-        
+        Timer::stop("communication");
+
         
     }else if(Config::myconfig->check("player2")){
+        Timer::record("communication");
         P2Pchannel::mychnl->send_data_to("player1",testdata2,number * 8);
         P2Pchannel::mychnl->recv_data_from("player1",testdata,number * 8);
+        Timer::stop("communication");
     }
     //online
     if(Config::myconfig->check("player0")){
@@ -70,7 +77,7 @@ int main(int argc, char** argv){
     Timer::stop("setup");
     Timer::stop("all");
     Timer::test_print();
-
+    printf("\n\n");
     //evaluateEq_full(&server_key, &k0, res2, 16);
     //evaluateEq(&server_key, &k1, res2, datalens);
 

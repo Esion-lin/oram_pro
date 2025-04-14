@@ -52,7 +52,7 @@ class Sign{
     void set_up(const std::vector<AShareT<T>>& x, std::vector<AShareT<T>>& output, bool need_gen){
 
         const size_t WIDTH = output.size();
-        omp_set_num_threads(std::min(WIDTH+3, (size_t)omp_get_max_threads()/6));
+        omp_set_num_threads(std::min(WIDTH+3, (size_t)omp_get_max_threads()/3));
 
         r_x_i = (Plist<LIST_LEN>*)malloc(sizeof(Plist<LIST_LEN>)*WIDTH);
         r_z_p = (T*) malloc(WIDTH * sizeof(T));
@@ -218,8 +218,8 @@ class Sign{
             }
 
             Timer::record("communication");
-            sendVector<T>(backmessage, 2, WIDTH);
             sendVector<T>(backmessage, 1, WIDTH);
+            sendVector<T>(backmessage, 2, WIDTH);
             Timer::stop("communication");
             free(u_j);
             free(backmessage);

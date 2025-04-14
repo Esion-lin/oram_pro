@@ -17,7 +17,7 @@ IF (CMAKE_BUILD_TYPE STREQUAL Debug)
 ENDIF()
 
 option(ENABLE_FFS "Enable FFS" OFF) #ORAM
-option(ENABLE_GC "Enable GC" OFF)
+option(ENABLE_GC "Enable GC" ON)
 option(ENABLE_DT "Enable DT" OFF)
 option(TEST_FOREST_DT "test forest dt protocol" OFF) #DT
 option(TEST_RISC "test risc protocol" OFF) #PFE
@@ -26,7 +26,11 @@ option(TEST_GCM "test GCM protocol" OFF)
 option(TEST_AUDI "test auditable protocol" OFF)
 
 option(TEST_PPML "test PPML protocol" ON)
-
+OPTION(THREADING "Option description" ON)
+IF(THREADING)
+	ADD_DEFINITIONS(-DTHREADING)
+	message("Multi Threading: on")
+ENDIF(THREADING)
 find_package(OpenSSL REQUIRED)
 find_path(NTL_INCLUDE_DIR
               NAMES NTL/ZZ.h
@@ -117,11 +121,15 @@ message("enable ffs")
     add_executable(test_fss src/Test_fss.cpp)
     target_link_libraries(test_fss PRIVATE fss log)
 if (ENABLE_GC)
-    message("enable gc") 
-    add_library(gc protocol/src/gc_op.cpp)
-    target_link_libraries(gc ${OPENSSL_LIBRARIES} emp-tool emp empot)
-    add_executable(test_gc src/Test_gc.cpp)
-    target_link_libraries(test_gc PRIVATE gc log emp-tool emp empot)   
+message("enable gc") 
+include_directories(protocol)
+add_library(gc protocol/src/gc_op.cpp)
+target_link_libraries(gc ${OPENSSL_LIBRARIES} emp-tool emp empot)
+add_executable(test_gc src/Test_gc.cpp)
+add_executable(test_blaze src/Test_blaze.cpp)
+target_link_libraries(test_gc PRIVATE gc log emp-tool emp empot)  
+target_link_libraries(test_blaze PRIVATE gc log emp-tool emp empot)  
+
 endif()
 if (TEST_GCM)
     add_library(gcm protocol/2_parties/GCM.cpp)

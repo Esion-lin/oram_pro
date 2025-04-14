@@ -1,0 +1,31 @@
+# 2PC_eq_cmp
+
+need [libOTe](https://github.com/osu-crypto/libOTe)
+
+then change the line 17 in CMakeLists.txt to find libOTe.
+```
+set(CMAKE_PREFIX_PATH "/path/to/libOTe")
+```
+
+
+```bash
+mkdir build
+cmake -S . -B build
+cmake --build build --parallel
+```
+
+To Run the code, use this in two shells. 
+
+```bash
+./build/eq_cmp -sender -n 100000 -l 4 -c 0
+./build/eq_cmp -receiver -n 100000 -l 4 -c 0 
+# will do equality test of 100000 4-bit numbers
+
+./build/eq_cmp -sender -n 100000 -l 4 -c 1
+./build/eq_cmp -receiver -n 100000 -l 4 -c 1
+
+-n the number will be comparision or equality test
+-l the bit of the number to be calculated
+-c the type will be calculated, 0 means equality test, 1 means comparision
+-ip mean the ip address, default is localhost:1213
+```
